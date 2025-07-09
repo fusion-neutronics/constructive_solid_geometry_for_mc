@@ -83,3 +83,34 @@ impl RegionExpr {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::surface::{Surface, SurfaceKind};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_region_contains() {
+        // Create two surfaces
+        let s1 = Surface { id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: -5.0 } };
+        let s2 = Surface { id: 2, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 3.0 } };
+
+        // Map of surfaces by id
+        let mut surfaces = HashMap::new();
+        surfaces.insert(s1.id, s1.clone());
+        surfaces.insert(s2.id, s2.clone());
+
+        // Build a region: inside s2 AND above s1
+        let region = Region::new_from_halfspace(crate::region::HalfspaceType::Above(s1.id))
+            .intersection(&Region::new_from_halfspace(crate::region::HalfspaceType::Below(s2.id)));
+
+        // Test a point inside both
+        let point = (0.0, 0.0, 0.0);
+        assert!(region.contains(point, &surfaces));
+
+        // Test a point outside the sphere
+        let point = (0.0, 0.0, 4.0);
+        assert!(!region.contains(point, &surfaces));
+    }
+}
