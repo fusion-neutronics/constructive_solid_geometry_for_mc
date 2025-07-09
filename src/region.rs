@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::surface::Surface;
+use crate::bounding_box::BoundingBox;
 
 #[derive(Clone)]
 pub struct Region {
@@ -55,6 +56,10 @@ impl Region {
     pub fn evaluate_contains(&self, point: (f64, f64, f64), surfaces: &HashMap<usize, Surface>) -> bool {
         self.expr.evaluate_contains(point, surfaces)
     }
+
+    pub fn bounding_box(&self, surfaces: &HashMap<usize, Surface>) -> crate::bounding_box::BoundingBox {
+        self.expr.bounding_box_with_surfaces(surfaces)
+    }
 }
 
 impl RegionExpr {
@@ -79,6 +84,65 @@ impl RegionExpr {
             RegionExpr::Union(a, b) => a.evaluate_contains(point, surfaces) || b.evaluate_contains(point, surfaces),
             RegionExpr::Intersection(a, b) => a.evaluate_contains(point, surfaces) && b.evaluate_contains(point, surfaces),
             RegionExpr::Complement(inner) => !inner.evaluate_contains(point, surfaces),
+        }
+    }
+
+    pub fn bounding_box_with_surfaces(&self, surfaces: &HashMap<usize, Surface>) -> crate::bounding_box::BoundingBox {
+        match self {
+            RegionExpr::Halfspace(hs) => {
+                match hs {
+                    HalfspaceType::Above(id) | HalfspaceType::Below(id) => {
+                        if let Some(surf) = surfaces.get(id) {
+                            match &surf.kind {
+                                crate::surface::SurfaceKind::Sphere { center, radius } => {
+                                    crate::bounding_box::BoundingBox {
+                                        lower_left_corner: [
+                                            center[0] - radius,
+                                            center[1] - radius,
+                                            center[2] - radius,
+                                        ],
+                                        upper_right_corner: [
+                                            center[0] + radius,
+                                            center[1] + radius,
+                                            center[2] + radius,
+                                        ],
+                                    }
+                                }
+                                // TODO: Add tight bounds for Cylinder, Plane, etc.
+                                _ => crate::bounding_box::BoundingBox {
+                                    lower_left_corner: [f64::NEG_INFINITY; 3],
+                                    upper_right_corner: [f64::INFINITY; 3],
+                                },
+                            }
+                        } else {
+                            crate::bounding_box::BoundingBox {
+                                lower_left_corner: [f64::NEG_INFINITY; 3],
+                                upper_right_corner: [f64::INFINITY; 3],
+                            }
+                        }
+                    }
+                }
+            }
+            RegionExpr::Union(a, b) | RegionExpr::Intersection(a, b) => {
+                let bbox_a = a.bounding_box_with_surfaces(surfaces);
+                let bbox_b = b.bounding_box_with_surfaces(surfaces);
+                crate::bounding_box::BoundingBox {
+                    lower_left_corner: [
+                        bbox_a.lower_left_corner[0].min(bbox_b.lower_left_corner[0]),
+                        bbox_a.lower_left_corner[1].min(bbox_b.lower_left_corner[1]),
+                        bbox_a.lower_left_corner[2].min(bbox_b.lower_left_corner[2]),
+                    ],
+                    upper_right_corner: [
+                        bbox_a.upper_right_corner[0].max(bbox_b.upper_right_corner[0]),
+                        bbox_a.upper_right_corner[1].max(bbox_b.upper_right_corner[1]),
+                        bbox_a.upper_right_corner[2].max(bbox_b.upper_right_corner[2]),
+                    ],
+                }
+            }
+            RegionExpr::Complement(_) => crate::bounding_box::BoundingBox {
+                lower_left_corner: [f64::NEG_INFINITY; 3],
+                upper_right_corner: [f64::INFINITY; 3],
+            },
         }
     }
 }
@@ -111,5 +175,17 @@ mod tests {
         // Test a point outside the sphere
         let point = (0.0, 0.0, 4.0);
         assert!(!region.contains(point, &surfaces));
+    }
+
+    #[test]
+    fn test_sphere_bounding_box() {
+        // Sphere of radius 2 at (0,0,0)
+        let s = Surface { id: 1, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 2.0 } };
+        let mut surfaces = HashMap::new();
+        surfaces.insert(s.id, s.clone());
+        let region = Region::new_from_halfspace(HalfspaceType::Below(s.id));
+        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        assert_eq!(bbox.lower_left_corner, [-2.0, -2.0, -2.0]);
+        assert_eq!(bbox.upper_right_corner, [2.0, 2.0, 2.0]);
     }
 }

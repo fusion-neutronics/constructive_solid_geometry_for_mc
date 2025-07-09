@@ -47,6 +47,23 @@ impl PyRegion {
         Ok(self.inner.expr.evaluate_contains(point, &surf_map))
     }
 
+    pub fn bounding_box(&self, surfaces: &PyAny) -> PyResult<PyBoundingBox> {
+        let mut surf_map = HashMap::new();
+        let items = surfaces.call_method0("items")?;
+        let iter = items.iter()?;
+        for item_result in iter {
+            let item = item_result?;
+            let key: usize = item.get_item(0)?.extract()?;
+            let value: PyRef<PySurface> = item.get_item(1)?.extract()?;
+            surf_map.insert(key, value.inner.clone());
+        }
+        let bbox = self.inner.bounding_box(&surf_map);
+        Ok(PyBoundingBox {
+            lower_left_corner: bbox.lower_left_corner,
+            upper_right_corner: bbox.upper_right_corner,
+        })
+    }
+
     fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {
         if let Ok(other_region) = other.extract::<PyRef<PyRegion>>() {
             Ok(PyRegion {
@@ -81,6 +98,25 @@ impl PyRegion {
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err("Operand must be PyRegion or PyHalfspace"))
         }
+    }
+}
+
+#[pyclass]
+pub struct PyBoundingBox {
+    #[pyo3(get)]
+    pub lower_left_corner: [f64; 3],
+    #[pyo3(get)]
+    pub upper_right_corner: [f64; 3],
+}
+
+#[pymethods]
+impl PyBoundingBox {
+    // Optionally, add __repr__ for pretty printing
+    fn __repr__(&self) -> String {
+        format!(
+            "BoundingBox(lower_left_corner={:?}, upper_right_corner={:?})",
+            self.lower_left_corner, self.upper_right_corner
+        )
     }
 }
 
@@ -125,6 +161,23 @@ impl PyHalfspace {
             surf_map.insert(key, value.inner.clone());
         }
         Ok(self.inner.expr.evaluate_contains(point, &surf_map))
+    }
+
+    pub fn bounding_box(&self, surfaces: &PyAny) -> PyResult<PyBoundingBox> {
+        let mut surf_map = HashMap::new();
+        let items = surfaces.call_method0("items")?;
+        let iter = items.iter()?;
+        for item_result in iter {
+            let item = item_result?;
+            let key: usize = item.get_item(0)?.extract()?;
+            let value: PyRef<crate::surface_python::PySurface> = item.get_item(1)?.extract()?;
+            surf_map.insert(key, value.inner.clone());
+        }
+        let bbox = self.inner.bounding_box(&surf_map);
+        Ok(PyBoundingBox {
+            lower_left_corner: bbox.lower_left_corner,
+            upper_right_corner: bbox.upper_right_corner,
+        })
     }
 
     fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {

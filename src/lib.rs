@@ -1,5 +1,6 @@
 pub mod surface;
 pub mod region;
+pub mod bounding_box;
 
 // Only include Python-specific code when the pyo3 feature is enabled
 #[cfg(feature = "pyo3")]
