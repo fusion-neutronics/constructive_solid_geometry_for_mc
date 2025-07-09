@@ -14,6 +14,6 @@ print("Point inside region1?", inside)
 
 region2 = -s2
 
-inside = region2.evaluate((0, 0, 0), {s1.id: s1, s2.id: s2})
+inside = region2.contains((0, 0, 0), {s1.id: s1, s2.id: s2})
 
 print("Point inside region2?", inside)

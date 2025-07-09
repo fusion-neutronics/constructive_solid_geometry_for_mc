@@ -127,10 +127,6 @@ impl PyHalfspace {
         Ok(self.inner.expr.evaluate_contains(point, &surf_map))
     }
 
-    pub fn evaluate(&self, point: (f64, f64, f64), surfaces: &PyAny) -> PyResult<bool> {
-        self.contains(point, surfaces)
-    }
-
     fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {
         if let Ok(other_halfspace) = other.extract::<PyRef<PyHalfspace>>() {
             Ok(PyRegion {

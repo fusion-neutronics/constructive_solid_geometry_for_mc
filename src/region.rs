@@ -47,7 +47,6 @@ impl Region {
     }
     
     // Regular Rust version of contains that takes a HashMap directly
-    #[cfg(not(feature = "python"))]
     pub fn contains(&self, point: (f64, f64, f64), surfaces: &HashMap<usize, Surface>) -> bool {
         self.expr.evaluate_contains(point, surfaces)
     }
