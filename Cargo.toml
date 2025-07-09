@@ -1,12 +1,12 @@
 [package]
-name = "mycsg"
+name = "constructive_solid_geometry_for_mc"
 version = "0.1.0"
 edition = "2021"
 description = "Material builder for Monte Carlo simulations"
 license = "MIT"
 
 [lib]
-name = "mycsg"
+name = "constructive_solid_geometry_for_mc"
 crate-type = ["cdylib", "rlib"]
 # Keep the path the same
 path = "src/lib.rs"

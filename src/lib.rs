@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 
 #[cfg(feature = "pyo3")]
 #[pymodule]
-fn mycsg(_py: Python, m: &PyModule) -> PyResult<()> {
+fn constructive_solid_geometry_for_mc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<surface_python::PySurface>()?;
     m.add_class::<region_python::PyRegion>()?;
     m.add_class::<region_python::PyHalfspace>()?;

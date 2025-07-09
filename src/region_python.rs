@@ -5,7 +5,7 @@ use crate::region::{Region, RegionExpr, HalfspaceType};
 use crate::surface::Surface;
 use crate::surface_python::PySurface;
 
-#[pyclass]
+#[pyclass(name = "Region")]
 #[derive(Clone)]
 pub struct PyRegion {
     pub inner: Region,
@@ -112,6 +112,23 @@ impl PyHalfspace {
                 expr: RegionExpr::Complement(Box::new(self_.inner.expr.clone())),
             }
         })
+    }
+
+    pub fn contains(&self, point: (f64, f64, f64), surfaces: &PyAny) -> PyResult<bool> {
+        let mut surf_map = std::collections::HashMap::new();
+        let items = surfaces.call_method0("items")?;
+        let iter = items.iter()?;
+        for item_result in iter {
+            let item = item_result?;
+            let key: usize = item.get_item(0)?.extract()?;
+            let value: PyRef<crate::surface_python::PySurface> = item.get_item(1)?.extract()?;
+            surf_map.insert(key, value.inner.clone());
+        }
+        Ok(self.inner.expr.evaluate_contains(point, &surf_map))
+    }
+
+    pub fn evaluate(&self, point: (f64, f64, f64), surfaces: &PyAny) -> PyResult<bool> {
+        self.contains(point, surfaces)
     }
 
     fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {
