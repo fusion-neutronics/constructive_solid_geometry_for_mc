@@ -1,0 +1,30 @@
+[package]
+name = "mycsg"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "mycsg"
+# Only include cdylib when building with Python feature
+crate-type = ["rlib", "staticlib"]
+
+[features]
+default = []
+# Use dep: prefix to properly enable optional dependencies
+python = ["dep:pyo3", "dep:pyo3-build-config", "cdylib"]
+
+# This feature is used internally to conditionally include the cdylib crate-type
+cdylib = []
+
+[dependencies]
+# Make pyo3 optional
+pyo3 = { version = "0.21", features = ["extension-module"], optional = true }
+
+[build-dependencies]
+# Only include when python feature is enabled
+pyo3-build-config = { version = "0.21", optional = true }
+
+[package.metadata.maturin]
+name = "mycsg"
+python-source = "python"
+features = ["python"]
