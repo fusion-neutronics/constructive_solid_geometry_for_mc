@@ -21,22 +21,6 @@ impl PyRegion {
         }
     }
 
-    fn __and__(self_: PyRef<'_, Self>, other: PyRef<'_, Self>) -> PyResult<Self> {
-        Ok(PyRegion {
-            inner: Region {
-                expr: RegionExpr::Intersection(Box::new(self_.inner.expr.clone()), Box::new(other.inner.expr.clone())),
-            }
-        })
-    }
-
-    fn __or__(self_: PyRef<'_, Self>, other: PyRef<'_, Self>) -> PyResult<Self> {
-        Ok(PyRegion {
-            inner: Region {
-                expr: RegionExpr::Union(Box::new(self_.inner.expr.clone()), Box::new(other.inner.expr.clone())),
-            }
-        })
-    }
-
     fn __invert__(self_: PyRef<'_, Self>) -> PyResult<Self> {
         Ok(PyRegion {
             inner: Region {
@@ -62,6 +46,42 @@ impl PyRegion {
 
         Ok(self.inner.expr.evaluate_contains(point, &surf_map))
     }
+
+    fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {
+        if let Ok(other_region) = other.extract::<PyRef<PyRegion>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Intersection(Box::new(self.inner.expr.clone()), Box::new(other_region.inner.expr.clone())),
+                }
+            })
+        } else if let Ok(other_halfspace) = other.extract::<PyRef<PyHalfspace>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Intersection(Box::new(self.inner.expr.clone()), Box::new(other_halfspace.inner.expr.clone())),
+                }
+            })
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err("Operand must be PyRegion or PyHalfspace"))
+        }
+    }
+
+    fn __or__(&self, other: &PyAny) -> PyResult<PyRegion> {
+        if let Ok(other_region) = other.extract::<PyRef<PyRegion>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Union(Box::new(self.inner.expr.clone()), Box::new(other_region.inner.expr.clone())),
+                }
+            })
+        } else if let Ok(other_halfspace) = other.extract::<PyRef<PyHalfspace>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Union(Box::new(self.inner.expr.clone()), Box::new(other_halfspace.inner.expr.clone())),
+                }
+            })
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err("Operand must be PyRegion or PyHalfspace"))
+        }
+    }
 }
 
 #[pyclass]
@@ -86,27 +106,47 @@ impl PyHalfspace {
         }
     }
 
-    fn __and__(self_: PyRef<'_, Self>, other: PyRef<'_, Self>) -> PyResult<PyRegion> {
-        Ok(PyRegion {
-            inner: Region {
-                expr: RegionExpr::Intersection(Box::new(self_.inner.expr.clone()), Box::new(other.inner.expr.clone())),
-            }
-        })
-    }
-
-    fn __or__(self_: PyRef<'_, Self>, other: PyRef<'_, Self>) -> PyResult<PyRegion> {
-        Ok(PyRegion {
-            inner: Region {
-                expr: RegionExpr::Union(Box::new(self_.inner.expr.clone()), Box::new(other.inner.expr.clone())),
-            }
-        })
-    }
-
     fn __invert__(self_: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
         Ok(PyHalfspace {
             inner: Region {
                 expr: RegionExpr::Complement(Box::new(self_.inner.expr.clone())),
             }
         })
+    }
+
+    fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {
+        if let Ok(other_halfspace) = other.extract::<PyRef<PyHalfspace>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Intersection(Box::new(self.inner.expr.clone()), Box::new(other_halfspace.inner.expr.clone())),
+                }
+            })
+        } else if let Ok(other_region) = other.extract::<PyRef<PyRegion>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Intersection(Box::new(self.inner.expr.clone()), Box::new(other_region.inner.expr.clone())),
+                }
+            })
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err("Operand must be PyRegion or PyHalfspace"))
+        }
+    }
+
+    fn __or__(&self, other: &PyAny) -> PyResult<PyRegion> {
+        if let Ok(other_halfspace) = other.extract::<PyRef<PyHalfspace>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Union(Box::new(self.inner.expr.clone()), Box::new(other_halfspace.inner.expr.clone())),
+                }
+            })
+        } else if let Ok(other_region) = other.extract::<PyRef<PyRegion>>() {
+            Ok(PyRegion {
+                inner: Region {
+                    expr: RegionExpr::Union(Box::new(self.inner.expr.clone()), Box::new(other_region.inner.expr.clone())),
+                }
+            })
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err("Operand must be PyRegion or PyHalfspace"))
+        }
     }
 }
