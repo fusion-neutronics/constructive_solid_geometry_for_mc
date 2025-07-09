@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use crate::region::{Region, RegionExpr, HalfspaceType};
 use crate::surface::Surface;
+use crate::surface_python::PySurface;
 
 #[pyclass]
 #[derive(Clone)]
@@ -108,11 +109,4 @@ impl PyHalfspace {
             }
         })
     }
-}
-
-// This is used by surface_python.rs
-#[pyclass]
-#[derive(Clone)]
-pub struct PySurface {
-    pub inner: Surface,
 }

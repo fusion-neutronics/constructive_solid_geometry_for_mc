@@ -1,7 +1,13 @@
 use pyo3::prelude::*;
 
 use crate::surface::{Surface, SurfaceKind};
-use crate::region_python::{PyRegion, PyHalfspace, PySurface};
+use crate::region_python::{PyRegion, PyHalfspace};
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PySurface {
+    pub inner: Surface,
+}
 
 #[pymethods]
 impl PySurface {
@@ -13,6 +19,11 @@ impl PySurface {
                 kind: SurfaceKind::Plane { a, b, c, d },
             }
         })
+    }
+
+    #[staticmethod]
+    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, id: Option<usize>) -> PyResult<Self> {
+        Self::new(a, b, c, d, id)
     }
 
     #[staticmethod]
@@ -45,6 +56,11 @@ impl PySurface {
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         // Call the core Rust implementation
         self.inner.evaluate(point)
+    }
+
+    #[getter]
+    pub fn id(&self) -> usize {
+        self.inner.id
     }
 
     fn __neg__(slf: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
