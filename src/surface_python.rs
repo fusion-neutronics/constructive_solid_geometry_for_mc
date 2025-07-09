@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::types::PyType;
 
 use crate::surface::{Surface, SurfaceKind};
 use crate::region_python::{PyRegion, PyHalfspace};
@@ -11,8 +12,8 @@ pub struct PySurface {
 
 #[pymethods]
 impl PySurface {
-    #[new]
-    pub fn new(a: f64, b: f64, c: f64, d: f64, id: Option<usize>) -> PyResult<Self> {
+    #[classmethod]
+    pub fn Plane(_cls: &PyType, a: f64, b: f64, c: f64, d: f64, id: Option<usize>) -> PyResult<Self> {
         Ok(PySurface {
             inner: Surface {
                 id: id.unwrap_or(0),
@@ -21,13 +22,8 @@ impl PySurface {
         })
     }
 
-    #[staticmethod]
-    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, id: Option<usize>) -> PyResult<Self> {
-        Self::new(a, b, c, d, id)
-    }
-
-    #[staticmethod]
-    pub fn sphere(center: (f64, f64, f64), radius: f64, id: Option<usize>) -> PyResult<Self> {
+    #[classmethod]
+    pub fn Sphere(_cls: &PyType, center: (f64, f64, f64), radius: f64, id: Option<usize>) -> PyResult<Self> {
         Ok(PySurface {
             inner: Surface {
                 id: id.unwrap_or(0),
@@ -39,8 +35,8 @@ impl PySurface {
         })
     }
 
-    #[staticmethod]
-    pub fn cylinder(axis: (f64, f64, f64), origin: (f64, f64, f64), radius: f64, id: Option<usize>) -> PyResult<Self> {
+    #[classmethod]
+    pub fn Cylinder(_cls: &PyType, axis: (f64, f64, f64), origin: (f64, f64, f64), radius: f64, id: Option<usize>) -> PyResult<Self> {
         Ok(PySurface {
             inner: Surface {
                 id: id.unwrap_or(0),
