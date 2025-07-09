@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use crate::surface::{Surface, SurfaceKind};
 use crate::region_python::{PyRegion, PyHalfspace};
 
-#[pyclass]
+#[pyclass(name = "Surface")]
 #[derive(Clone)]
 pub struct PySurface {
     pub inner: Surface,

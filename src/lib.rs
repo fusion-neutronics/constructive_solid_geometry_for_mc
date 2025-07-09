@@ -1,26 +1,25 @@
 pub mod surface;
 pub mod region;
 
-// Only include Python-specific code when the python feature is enabled
-#[cfg(feature = "python")]
+// Only include Python-specific code when the pyo3 feature is enabled
+#[cfg(feature = "pyo3")]
 pub mod surface_python;
-#[cfg(feature = "python")]
+#[cfg(feature = "pyo3")]
 pub mod region_python;
 
 // Re-export the public API for Rust users
 pub use surface::Surface;
 pub use region::{Region, RegionExpr, HalfspaceType};
 
-// Only export the Python module when the python feature is enabled
-#[cfg(feature = "python")]
+// Only export the Python module when the pyo3 feature is enabled
+#[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "pyo3")]
 #[pymodule]
 fn mycsg(_py: Python, m: &PyModule) -> PyResult<()> {
-    // Add the classes with their Python-friendly names
+    m.add_class::<surface_python::PySurface>()?;
     m.add_class::<region_python::PyRegion>()?;
     m.add_class::<region_python::PyHalfspace>()?;
-    m.add_class::<surface_python::PySurface>()?;
     Ok(())
 }
