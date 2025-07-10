@@ -11,6 +11,7 @@ inside = region1.contains((0, 0, 0), {s1.id: s1, s2.id: s2, s3.id: s3})
 
 print("Point inside region1?", inside)
 
+s4 = Surface.XPlane(1.0, id=10)
 region2 = -s2
 
 inside = region2.contains((0, 0, 0), {s2.id: s2})
@@ -22,6 +23,8 @@ print("Bounding box of region2:", bb.lower_left_corner, bb.upper_right_corner)
 
 print(f'Bounding box center {bb.center}')
 
+print(f"bb width {bb.width}")
+
 
 import numpy as np
 
@@ -30,13 +33,13 @@ for x in np.linspace(
     bb.lower_left_corner[0], bb.upper_right_corner[0], 10
 ):
     for y in np.linspace(
-        bb.lower_left_corner[1], bb.upper_right_corner[1], 20
+        bb.lower_left_corner[1], bb.upper_right_corner[1], 10
     ):
         contains = region2.contains((x, y, 0), {s2.id: s2})
-        print(f"Point ({x}, {y}, 0) inside region2? {contains}")
+        # print(f"Point ({x}, {y}, 0) inside region2? {contains}")
         results.append(int(contains))
 
-results_np = np.array(results).reshape((10, 20))
+results_np = np.array(results).reshape((10, 10))
 print(results_np)
 # import matplotlib.pyplot as plt
 

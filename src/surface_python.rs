@@ -49,6 +49,25 @@ impl PySurface {
         })
     }
 
+    #[classmethod]
+    pub fn XPlane(_cls: &PyType, x0: f64, id: usize) -> Self {
+        PySurface {
+            inner: crate::surface::Surface::x_plane(x0, id),
+        }
+    }
+    #[classmethod]
+    pub fn YPlane(_cls: &PyType, y0: f64, id: usize) -> Self {
+        PySurface {
+            inner: crate::surface::Surface::y_plane(y0, id),
+        }
+    }
+    #[classmethod]
+    pub fn ZPlane(_cls: &PyType, z0: f64, id: usize) -> Self {
+        PySurface {
+            inner: crate::surface::Surface::z_plane(z0, id),
+        }
+    }
+
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         // Call the core Rust implementation
         self.inner.evaluate(point)

@@ -36,6 +36,27 @@ impl Surface {
         }
     }
     
+    pub fn x_plane(x0: f64, id: usize) -> Self {
+        Surface {
+            id,
+            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: x0 },
+        }
+    }
+
+    pub fn y_plane(y0: f64, id: usize) -> Self {
+        Surface {
+            id,
+            kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: y0 },
+        }
+    }
+
+    pub fn z_plane(z0: f64, id: usize) -> Self {
+        Surface {
+            id,
+            kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
+        }
+    }
+
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         match &self.kind {
             SurfaceKind::Plane { a, b, c, d } => {
