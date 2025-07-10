@@ -62,6 +62,7 @@ impl PyRegion {
             lower_left_corner: bbox.lower_left_corner,
             upper_right_corner: bbox.upper_right_corner,
             center: bbox.center,
+            width: bbox.width,
         })
     }
 
@@ -110,6 +111,8 @@ pub struct PyBoundingBox {
     pub upper_right_corner: [f64; 3],
     #[pyo3(get)]
     pub center: [f64; 3],
+    #[pyo3(get)]
+    pub width: [f64; 3],
 }
 
 #[pymethods]
@@ -117,8 +120,8 @@ impl PyBoundingBox {
     // Optionally, add __repr__ for pretty printing
     fn __repr__(&self) -> String {
         format!(
-            "BoundingBox(lower_left_corner={:?}, upper_right_corner={:?}, center={:?})",
-            self.lower_left_corner, self.upper_right_corner, self.center
+            "BoundingBox(lower_left_corner={:?}, upper_right_corner={:?}, center={:?}, width={:?})",
+            self.lower_left_corner, self.upper_right_corner, self.center, self.width
         )
     }
 }
@@ -181,6 +184,7 @@ impl PyHalfspace {
             lower_left_corner: bbox.lower_left_corner,
             upper_right_corner: bbox.upper_right_corner,
             center: bbox.center,
+            width: bbox.width,
         })
     }
 
