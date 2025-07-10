@@ -95,30 +95,22 @@ impl RegionExpr {
                         if let Some(surf) = surfaces.get(id) {
                             match &surf.kind {
                                 crate::surface::SurfaceKind::Sphere { center, radius } => {
-                                    crate::bounding_box::BoundingBox {
-                                        lower_left_corner: [
-                                            center[0] - radius,
-                                            center[1] - radius,
-                                            center[2] - radius,
-                                        ],
-                                        upper_right_corner: [
-                                            center[0] + radius,
-                                            center[1] + radius,
-                                            center[2] + radius,
-                                        ],
-                                    }
+                                    crate::bounding_box::BoundingBox::new(
+                                        [center[0] - radius, center[1] - radius, center[2] - radius],
+                                        [center[0] + radius, center[1] + radius, center[2] + radius],
+                                    )
                                 }
                                 // TODO: Add tight bounds for Cylinder, Plane, etc.
-                                _ => crate::bounding_box::BoundingBox {
-                                    lower_left_corner: [f64::NEG_INFINITY; 3],
-                                    upper_right_corner: [f64::INFINITY; 3],
-                                },
+                                _ => crate::bounding_box::BoundingBox::new(
+                                    [f64::NEG_INFINITY; 3],
+                                    [f64::INFINITY; 3],
+                                ),
                             }
                         } else {
-                            crate::bounding_box::BoundingBox {
-                                lower_left_corner: [f64::NEG_INFINITY; 3],
-                                upper_right_corner: [f64::INFINITY; 3],
-                            }
+                            crate::bounding_box::BoundingBox::new(
+                                [f64::NEG_INFINITY; 3],
+                                [f64::INFINITY; 3],
+                            )
                         }
                     }
                 }
@@ -126,23 +118,23 @@ impl RegionExpr {
             RegionExpr::Union(a, b) | RegionExpr::Intersection(a, b) => {
                 let bbox_a = a.bounding_box_with_surfaces(surfaces);
                 let bbox_b = b.bounding_box_with_surfaces(surfaces);
-                crate::bounding_box::BoundingBox {
-                    lower_left_corner: [
+                crate::bounding_box::BoundingBox::new(
+                    [
                         bbox_a.lower_left_corner[0].min(bbox_b.lower_left_corner[0]),
                         bbox_a.lower_left_corner[1].min(bbox_b.lower_left_corner[1]),
                         bbox_a.lower_left_corner[2].min(bbox_b.lower_left_corner[2]),
                     ],
-                    upper_right_corner: [
+                    [
                         bbox_a.upper_right_corner[0].max(bbox_b.upper_right_corner[0]),
                         bbox_a.upper_right_corner[1].max(bbox_b.upper_right_corner[1]),
                         bbox_a.upper_right_corner[2].max(bbox_b.upper_right_corner[2]),
                     ],
-                }
+                )
             }
-            RegionExpr::Complement(_) => crate::bounding_box::BoundingBox {
-                lower_left_corner: [f64::NEG_INFINITY; 3],
-                upper_right_corner: [f64::INFINITY; 3],
-            },
+            RegionExpr::Complement(_) => crate::bounding_box::BoundingBox::new(
+                [f64::NEG_INFINITY; 3],
+                [f64::INFINITY; 3],
+            ),
         }
     }
 }

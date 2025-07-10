@@ -19,3 +19,5 @@ print("Point inside region2?", inside)
 
 bb = region2.bounding_box({s2.id: s2})
 print("Bounding box of region2:", bb.lower_left_corner, bb.upper_right_corner)
+
+print(f'Bounding box center {bb.center}')
