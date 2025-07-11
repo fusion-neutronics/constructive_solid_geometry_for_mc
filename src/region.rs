@@ -146,10 +146,10 @@ impl RegionExpr {
         // Intersect with sphere bounds if present
         let mut sphere_bounds = None;
         for surf in surfaces.values() {
-            if let SurfaceKind::Sphere { center, radius } = &surf.kind {
+            if let SurfaceKind::Sphere { x0, y0, z0, radius } = &surf.kind {
                 sphere_bounds = Some((
-                    [center[0] - *radius, center[1] - *radius, center[2] - *radius],
-                    [center[0] + *radius, center[1] + *radius, center[2] + *radius],
+                    [*x0 - *radius, *y0 - *radius, *z0 - *radius],
+                    [*x0 + *radius, *y0 + *radius, *z0 + *radius],
                 ));
                 break;
             }
@@ -188,7 +188,7 @@ mod tests {
     fn test_region_contains() {
         // Create two surfaces
         let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: -5.0 } };
-        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 3.0 } };
+        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 3.0 } };
 
         // Map of surfaces by surface_id
         let mut surfaces = HashMap::new();
@@ -211,13 +211,13 @@ mod tests {
     #[test]
     fn test_sphere_bounding_box() {
         // Sphere of radius 2 at (0,0,0)
-        let s = Surface { surface_id: 1, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 2.0 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 } };
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
-        assert_eq!(bbox.lower_left_corner, [-2.0, -2.0, -2.0]);
-        assert_eq!(bbox.upper_right_corner, [2.0, 2.0, 2.0]);
+        assert_eq!(bbox.lower_left, [-2.0, -2.0, -2.0]);
+        assert_eq!(bbox.upper_right, [2.0, 2.0, 2.0]);
     }
 
     #[test]
@@ -225,7 +225,7 @@ mod tests {
         // XPlanes at x=2.1 and x=-2.1, sphere at origin with radius 4.2
         let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 } };
         let s2 = Surface { surface_id: 2, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 } };
-        let s3 = Surface { surface_id: 3, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 4.2 } };
+        let s3 = Surface { surface_id: 3, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 4.2 } };
         let mut surfaces = HashMap::new();
         surfaces.insert(s1.surface_id, s1.clone());
         surfaces.insert(s2.surface_id, s2.clone());
@@ -235,8 +235,8 @@ mod tests {
             .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s1.surface_id)))
             .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s3.surface_id)));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
-        assert_eq!(bbox.lower_left_corner, [-2.1, -4.2, -4.2]);
-        assert_eq!(bbox.upper_right_corner, [2.1, 4.2, 4.2]);
+        assert_eq!(bbox.lower_left, [-2.1, -4.2, -4.2]);
+        assert_eq!(bbox.upper_right, [2.1, 4.2, 4.2]);
     }
 
     #[test]
@@ -248,12 +248,12 @@ mod tests {
         // Region: z < 3.5 (Below ZPlane)
         let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
-        assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[2], 3.5);
-        assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[0], f64::INFINITY);
-        assert_eq!(bbox.lower_left_corner[1], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
+        assert_eq!(bbox.lower_left[2], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[2], 3.5);
+        assert_eq!(bbox.lower_left[0], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[0], f64::INFINITY);
+        assert_eq!(bbox.lower_left[1], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[1], f64::INFINITY);
     }
 
     #[test]
@@ -265,12 +265,12 @@ mod tests {
         // Region: x < 1.5 (Below XPlane)
         let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
-        assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[0], 1.5);
-        assert_eq!(bbox.lower_left_corner[1], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
-        assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[2], f64::INFINITY);
+        assert_eq!(bbox.lower_left[0], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[0], 1.5);
+        assert_eq!(bbox.lower_left[1], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[1], f64::INFINITY);
+        assert_eq!(bbox.lower_left[2], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[2], f64::INFINITY);
     }
 
     #[test]
@@ -282,11 +282,11 @@ mod tests {
         // Region: y > -2.0 (Above YPlane)
         let region = Region::new_from_halfspace(HalfspaceType::Above(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
-        assert_eq!(bbox.lower_left_corner[1], -2.0);
-        assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
-        assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[0], f64::INFINITY);
-        assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
-        assert_eq!(bbox.upper_right_corner[2], f64::INFINITY);
+        assert_eq!(bbox.lower_left[1], -2.0);
+        assert_eq!(bbox.upper_right[1], f64::INFINITY);
+        assert_eq!(bbox.lower_left[0], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[0], f64::INFINITY);
+        assert_eq!(bbox.lower_left[2], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right[2], f64::INFINITY);
     }
 }

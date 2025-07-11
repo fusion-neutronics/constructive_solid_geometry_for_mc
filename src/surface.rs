@@ -9,7 +9,7 @@ pub struct Surface {
 #[derive(Clone)]
 pub enum SurfaceKind {
     Plane { a: f64, b: f64, c: f64, d: f64 },
-    Sphere { center: [f64; 3], radius: f64 },
+    Sphere { x0: f64, y0: f64, z0: f64, radius: f64 },
     Cylinder { axis: [f64; 3], origin: [f64; 3], radius: f64 },
 }
 
@@ -22,10 +22,10 @@ impl Surface {
         }
     }
 
-    pub fn new_sphere(center: [f64; 3], radius: f64, surface_id: usize) -> Self {
+    pub fn new_sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize) -> Self {
         Surface {
             surface_id,
-            kind: SurfaceKind::Sphere { center, radius },
+            kind: SurfaceKind::Sphere { x0, y0, z0, radius },
         }
     }
 
@@ -62,10 +62,10 @@ impl Surface {
             SurfaceKind::Plane { a, b, c, d } => {
                 a * point.0 + b * point.1 + c * point.2 - d
             }
-            SurfaceKind::Sphere { center, radius } => {
-                let dx = point.0 - center[0];
-                let dy = point.1 - center[1];
-                let dz = point.2 - center[2];
+            SurfaceKind::Sphere { x0, y0, z0, radius } => {
+                let dx = point.0 - x0;
+                let dy = point.1 - y0;
+                let dz = point.2 - z0;
                 (dx * dx + dy * dy + dz * dz).sqrt() - radius
             }
             SurfaceKind::Cylinder { axis, origin, radius } => {

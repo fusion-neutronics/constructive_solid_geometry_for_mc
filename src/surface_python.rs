@@ -44,13 +44,15 @@ pub fn ZPlane(z0: f64, surface_id: usize) -> PySurface {
     PySurface { inner: crate::surface::Surface::z_plane(z0, surface_id) }
 }
 #[pyfunction]
-pub fn Sphere(center: (f64, f64, f64), radius: f64, surface_id: Option<usize>) -> PySurface {
+pub fn Sphere(x0: Option<f64>, y0: Option<f64>, z0: Option<f64>, r: f64, surface_id: Option<usize>) -> PySurface {
     PySurface {
         inner: Surface {
             surface_id: surface_id.unwrap_or(0),
             kind: SurfaceKind::Sphere {
-                center: [center.0, center.1, center.2],
-                radius,
+                x0: x0.unwrap_or(0.0),
+                y0: y0.unwrap_or(0.0),
+                z0: z0.unwrap_or(0.0),
+                radius: r,
             },
         },
     }

@@ -2,7 +2,7 @@ import constructive_solid_geometry_for_mc as csg4mc
 
 
 s1 = csg4mc.Plane(0, 0, 1, 5)
-s2 = csg4mc.Sphere((0, 0, 0), 3, surface_id=1)
+s2 = csg4mc.Sphere(x0=0,y0=0,z0=1, r=3, surface_id=1)
 s3 = csg4mc.Cylinder((0,0,1), (0,0,0), 1,surface_id=2)
 
 region1 = -s1 & +s2 | ~(-s3)
@@ -19,7 +19,7 @@ inside = region2.contains((0, 0, 0), {s2.id: s2})
 print("Point inside region2?", inside)
 
 bb = region2.bounding_box({s2.id: s2})
-print("Bounding box of region2:", bb.lower_left_corner, bb.upper_right_corner)
+print("Bounding box of region2:", bb.lower_left, bb.upper_right)
 
 print(f'Bounding box center {bb.center}')
 
@@ -30,10 +30,10 @@ import numpy as np
 
 results = []
 for x in np.linspace(
-    bb.lower_left_corner[0], bb.upper_right_corner[0], 10
+    bb.lower_left[0], bb.upper_right[0], 10
 ):
     for y in np.linspace(
-        bb.lower_left_corner[1], bb.upper_right_corner[1], 10
+        bb.lower_left[1], bb.upper_right[1], 10
     ):
         contains = region2.contains((x, y, 0), {s2.id: s2})
         # print(f"Point ({x}, {y}, 0) inside region2? {contains}")
