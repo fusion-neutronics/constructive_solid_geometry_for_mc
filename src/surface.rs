@@ -2,7 +2,7 @@ use crate::region::{RegionExpr, HalfspaceType, Region};
 
 #[derive(Clone)]
 pub struct Surface {
-    pub id: usize,
+    pub surface_id: usize,
     pub kind: SurfaceKind,
 }
 
@@ -15,44 +15,44 @@ pub enum SurfaceKind {
 
 // Regular Rust implementation
 impl Surface {
-    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, id: usize) -> Self {
+    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, surface_id: usize) -> Self {
         Surface {
-            id,
+            surface_id,
             kind: SurfaceKind::Plane { a, b, c, d },
         }
     }
 
-    pub fn new_sphere(center: [f64; 3], radius: f64, id: usize) -> Self {
+    pub fn new_sphere(center: [f64; 3], radius: f64, surface_id: usize) -> Self {
         Surface {
-            id,
+            surface_id,
             kind: SurfaceKind::Sphere { center, radius },
         }
     }
 
-    pub fn new_cylinder(axis: [f64; 3], origin: [f64; 3], radius: f64, id: usize) -> Self {
+    pub fn new_cylinder(axis: [f64; 3], origin: [f64; 3], radius: f64, surface_id: usize) -> Self {
         Surface {
-            id,
+            surface_id,
             kind: SurfaceKind::Cylinder { axis, origin, radius },
         }
     }
     
-    pub fn x_plane(x0: f64, id: usize) -> Self {
+    pub fn x_plane(x0: f64, surface_id: usize) -> Self {
         Surface {
-            id,
+            surface_id,
             kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: x0 },
         }
     }
 
-    pub fn y_plane(y0: f64, id: usize) -> Self {
+    pub fn y_plane(y0: f64, surface_id: usize) -> Self {
         Surface {
-            id,
+            surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: y0 },
         }
     }
 
-    pub fn z_plane(z0: f64, id: usize) -> Self {
+    pub fn z_plane(z0: f64, surface_id: usize) -> Self {
         Surface {
-            id,
+            surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
         }
     }

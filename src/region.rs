@@ -187,17 +187,17 @@ mod tests {
     #[test]
     fn test_region_contains() {
         // Create two surfaces
-        let s1 = Surface { id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: -5.0 } };
-        let s2 = Surface { id: 2, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 3.0 } };
+        let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: -5.0 } };
+        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 3.0 } };
 
-        // Map of surfaces by id
+        // Map of surfaces by surface_id
         let mut surfaces = HashMap::new();
-        surfaces.insert(s1.id, s1.clone());
-        surfaces.insert(s2.id, s2.clone());
+        surfaces.insert(s1.surface_id, s1.clone());
+        surfaces.insert(s2.surface_id, s2.clone());
 
         // Build a region: inside s2 AND above s1
-        let region = Region::new_from_halfspace(crate::region::HalfspaceType::Above(s1.id))
-            .intersection(&Region::new_from_halfspace(crate::region::HalfspaceType::Below(s2.id)));
+        let region = Region::new_from_halfspace(crate::region::HalfspaceType::Above(s1.surface_id))
+            .intersection(&Region::new_from_halfspace(crate::region::HalfspaceType::Below(s2.surface_id)));
 
         // Test a point inside both
         let point = (0.0, 0.0, 0.0);
@@ -211,10 +211,10 @@ mod tests {
     #[test]
     fn test_sphere_bounding_box() {
         // Sphere of radius 2 at (0,0,0)
-        let s = Surface { id: 1, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 2.0 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 2.0 } };
         let mut surfaces = HashMap::new();
-        surfaces.insert(s.id, s.clone());
-        let region = Region::new_from_halfspace(HalfspaceType::Below(s.id));
+        surfaces.insert(s.surface_id, s.clone());
+        let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
         assert_eq!(bbox.lower_left_corner, [-2.0, -2.0, -2.0]);
         assert_eq!(bbox.upper_right_corner, [2.0, 2.0, 2.0]);
@@ -223,17 +223,17 @@ mod tests {
     #[test]
     fn test_box_and_sphere_bounding_box() {
         // XPlanes at x=2.1 and x=-2.1, sphere at origin with radius 4.2
-        let s1 = Surface { id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 } };
-        let s2 = Surface { id: 2, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 } };
-        let s3 = Surface { id: 3, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 4.2 } };
+        let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 } };
+        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 } };
+        let s3 = Surface { surface_id: 3, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 4.2 } };
         let mut surfaces = HashMap::new();
-        surfaces.insert(s1.id, s1.clone());
-        surfaces.insert(s2.id, s2.clone());
-        surfaces.insert(s3.id, s3.clone());
+        surfaces.insert(s1.surface_id, s1.clone());
+        surfaces.insert(s2.surface_id, s2.clone());
+        surfaces.insert(s3.surface_id, s3.clone());
         // Region: x >= -2.1 & x <= 2.1 & inside sphere
-        let region = Region::new_from_halfspace(HalfspaceType::Above(s2.id))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s1.id)))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s3.id)));
+        let region = Region::new_from_halfspace(HalfspaceType::Above(s2.surface_id))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s1.surface_id)))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s3.surface_id)));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
         assert_eq!(bbox.lower_left_corner, [-2.1, -4.2, -4.2]);
         assert_eq!(bbox.upper_right_corner, [2.1, 4.2, 4.2]);
@@ -242,11 +242,11 @@ mod tests {
     #[test]
     fn test_zplane_bounding_box() {
         // ZPlane at z=3.5
-        let s = Surface { id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: 3.5 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: 3.5 } };
         let mut surfaces = HashMap::new();
-        surfaces.insert(s.id, s.clone());
+        surfaces.insert(s.surface_id, s.clone());
         // Region: z < 3.5 (Below ZPlane)
-        let region = Region::new_from_halfspace(HalfspaceType::Below(s.id));
+        let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
         assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
         assert_eq!(bbox.upper_right_corner[2], 3.5);
@@ -259,11 +259,11 @@ mod tests {
     #[test]
     fn test_xplane_bounding_box() {
         // XPlane at x=1.5
-        let s = Surface { id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 1.5 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 1.5 } };
         let mut surfaces = HashMap::new();
-        surfaces.insert(s.id, s.clone());
+        surfaces.insert(s.surface_id, s.clone());
         // Region: x < 1.5 (Below XPlane)
-        let region = Region::new_from_halfspace(HalfspaceType::Below(s.id));
+        let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
         assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
         assert_eq!(bbox.upper_right_corner[0], 1.5);
@@ -276,11 +276,11 @@ mod tests {
     #[test]
     fn test_yplane_bounding_box() {
         // YPlane at y=-2.0
-        let s = Surface { id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: -2.0 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: -2.0 } };
         let mut surfaces = HashMap::new();
-        surfaces.insert(s.id, s.clone());
+        surfaces.insert(s.surface_id, s.clone());
         // Region: y > -2.0 (Above YPlane)
-        let region = Region::new_from_halfspace(HalfspaceType::Above(s.id));
+        let region = Region::new_from_halfspace(HalfspaceType::Above(s.surface_id));
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
         assert_eq!(bbox.lower_left_corner[1], -2.0);
         assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
