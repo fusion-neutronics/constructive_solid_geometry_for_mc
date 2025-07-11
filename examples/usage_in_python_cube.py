@@ -1,9 +1,9 @@
-from constructive_solid_geometry_for_mc import Surface
+import constructive_solid_geometry_for_mc as csg4mc
 
 
-s1 = Surface.XPlane(x0=2.1, id=5)
-s2 = Surface.XPlane(x0=-2.1,id=6 )
-s3 = Surface.Sphere((0, 0, 0), 4.2, id=1)
+s1 = csg4mc.XPlane(x0=2.1, id=5)
+s2 = csg4mc.XPlane(x0=-2.1,id=6 )
+s3 = csg4mc.Sphere((0, 0, 0), 4.2, id=1)
 # s3 = Surface.Cylinder((0,0,1), (0,0,0), 1,id=2)
 
 surfaces_dict = {s1.id: s1, s2.id: s2, s3.id: s3}

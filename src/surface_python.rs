@@ -12,62 +12,6 @@ pub struct PySurface {
 
 #[pymethods]
 impl PySurface {
-    #[classmethod]
-    pub fn Plane(_cls: &PyType, a: f64, b: f64, c: f64, d: f64, id: Option<usize>) -> PyResult<Self> {
-        Ok(PySurface {
-            inner: Surface {
-                id: id.unwrap_or(0),
-                kind: SurfaceKind::Plane { a, b, c, d },
-            }
-        })
-    }
-
-    #[classmethod]
-    pub fn Sphere(_cls: &PyType, center: (f64, f64, f64), radius: f64, id: Option<usize>) -> PyResult<Self> {
-        Ok(PySurface {
-            inner: Surface {
-                id: id.unwrap_or(0),
-                kind: SurfaceKind::Sphere {
-                    center: [center.0, center.1, center.2],
-                    radius,
-                }
-            }
-        })
-    }
-
-    #[classmethod]
-    pub fn Cylinder(_cls: &PyType, axis: (f64, f64, f64), origin: (f64, f64, f64), radius: f64, id: Option<usize>) -> PyResult<Self> {
-        Ok(PySurface {
-            inner: Surface {
-                id: id.unwrap_or(0),
-                kind: SurfaceKind::Cylinder {
-                    axis: [axis.0, axis.1, axis.2],
-                    origin: [origin.0, origin.1, origin.2],
-                    radius,
-                }
-            }
-        })
-    }
-
-    #[classmethod]
-    pub fn XPlane(_cls: &PyType, x0: f64, id: usize) -> Self {
-        PySurface {
-            inner: crate::surface::Surface::x_plane(x0, id),
-        }
-    }
-    #[classmethod]
-    pub fn YPlane(_cls: &PyType, y0: f64, id: usize) -> Self {
-        PySurface {
-            inner: crate::surface::Surface::y_plane(y0, id),
-        }
-    }
-    #[classmethod]
-    pub fn ZPlane(_cls: &PyType, z0: f64, id: usize) -> Self {
-        PySurface {
-            inner: crate::surface::Surface::z_plane(z0, id),
-        }
-    }
-
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         // Call the core Rust implementation
         self.inner.evaluate(point)
@@ -84,6 +28,53 @@ impl PySurface {
 
     fn __pos__(slf: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
         Ok(PyHalfspace::new_above(slf.inner.id))
+    }
+}
+
+#[pyfunction]
+pub fn XPlane(x0: f64, id: usize) -> PySurface {
+    PySurface { inner: crate::surface::Surface::x_plane(x0, id) }
+}
+#[pyfunction]
+pub fn YPlane(y0: f64, id: usize) -> PySurface {
+    PySurface { inner: crate::surface::Surface::y_plane(y0, id) }
+}
+#[pyfunction]
+pub fn ZPlane(z0: f64, id: usize) -> PySurface {
+    PySurface { inner: crate::surface::Surface::z_plane(z0, id) }
+}
+#[pyfunction]
+pub fn Sphere(center: (f64, f64, f64), radius: f64, id: Option<usize>) -> PySurface {
+    PySurface {
+        inner: Surface {
+            id: id.unwrap_or(0),
+            kind: SurfaceKind::Sphere {
+                center: [center.0, center.1, center.2],
+                radius,
+            },
+        },
+    }
+}
+#[pyfunction]
+pub fn Cylinder(axis: (f64, f64, f64), origin: (f64, f64, f64), radius: f64, id: Option<usize>) -> PySurface {
+    PySurface {
+        inner: Surface {
+            id: id.unwrap_or(0),
+            kind: SurfaceKind::Cylinder {
+                axis: [axis.0, axis.1, axis.2],
+                origin: [origin.0, origin.1, origin.2],
+                radius,
+            },
+        },
+    }
+}
+#[pyfunction]
+pub fn Plane(a: f64, b: f64, c: f64, d: f64, id: Option<usize>) -> PySurface {
+    PySurface {
+        inner: Surface {
+            id: id.unwrap_or(0),
+            kind: SurfaceKind::Plane { a, b, c, d },
+        },
     }
 }
 
