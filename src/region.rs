@@ -88,54 +88,93 @@ impl RegionExpr {
     }
 
     pub fn bounding_box_with_surfaces(&self, surfaces: &HashMap<usize, Surface>) -> crate::bounding_box::BoundingBox {
-        match self {
-            RegionExpr::Halfspace(hs) => {
-                match hs {
-                    HalfspaceType::Above(id) | HalfspaceType::Below(id) => {
-                        if let Some(surf) = surfaces.get(id) {
-                            match &surf.kind {
-                                crate::surface::SurfaceKind::Sphere { center, radius } => {
-                                    crate::bounding_box::BoundingBox::new(
-                                        [center[0] - radius, center[1] - radius, center[2] - radius],
-                                        [center[0] + radius, center[1] + radius, center[2] + radius],
-                                    )
+        use crate::surface::SurfaceKind;
+        let mut x_bounds = (f64::NEG_INFINITY, f64::INFINITY);
+        let mut y_bounds = (f64::NEG_INFINITY, f64::INFINITY);
+        let mut z_bounds = (f64::NEG_INFINITY, f64::INFINITY);
+
+        // Collect axis-aligned plane bounds with correct sign convention
+        fn collect_axis_bounds(expr: &RegionExpr, surfaces: &HashMap<usize, Surface>,
+                              x_bounds: &mut (f64, f64), y_bounds: &mut (f64, f64), z_bounds: &mut (f64, f64)) {
+            match expr {
+                RegionExpr::Intersection(a, b) => {
+                    collect_axis_bounds(a, surfaces, x_bounds, y_bounds, z_bounds);
+                    collect_axis_bounds(b, surfaces, x_bounds, y_bounds, z_bounds);
+                }
+                RegionExpr::Halfspace(hs) => {
+                    match hs {
+                        HalfspaceType::Below(id) => {
+                            if let Some(surf) = surfaces.get(id) {
+                                match &surf.kind {
+                                    SurfaceKind::Plane { a, b, c, d } => {
+                                        if *a == 1.0 && *b == 0.0 && *c == 0.0 {
+                                            x_bounds.1 = x_bounds.1.min(*d); // x < d
+                                        } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
+                                            y_bounds.1 = y_bounds.1.min(*d); // y < d
+                                        } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
+                                            z_bounds.1 = z_bounds.1.min(*d); // z < d
+                                        }
+                                    }
+                                    _ => {}
                                 }
-                                // TODO: Add tight bounds for Cylinder, Plane, etc.
-                                _ => crate::bounding_box::BoundingBox::new(
-                                    [f64::NEG_INFINITY; 3],
-                                    [f64::INFINITY; 3],
-                                ),
                             }
-                        } else {
-                            crate::bounding_box::BoundingBox::new(
-                                [f64::NEG_INFINITY; 3],
-                                [f64::INFINITY; 3],
-                            )
+                        }
+                        HalfspaceType::Above(id) => {
+                            if let Some(surf) = surfaces.get(id) {
+                                match &surf.kind {
+                                    SurfaceKind::Plane { a, b, c, d } => {
+                                        if *a == 1.0 && *b == 0.0 && *c == 0.0 {
+                                            x_bounds.0 = x_bounds.0.max(*d); // x > d
+                                        } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
+                                            y_bounds.0 = y_bounds.0.max(*d); // y > d
+                                        } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
+                                            z_bounds.0 = z_bounds.0.max(*d); // z > d
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
                         }
                     }
                 }
+                _ => {}
             }
-            RegionExpr::Union(a, b) | RegionExpr::Intersection(a, b) => {
-                let bbox_a = a.bounding_box_with_surfaces(surfaces);
-                let bbox_b = b.bounding_box_with_surfaces(surfaces);
-                crate::bounding_box::BoundingBox::new(
-                    [
-                        bbox_a.lower_left_corner[0].min(bbox_b.lower_left_corner[0]),
-                        bbox_a.lower_left_corner[1].min(bbox_b.lower_left_corner[1]),
-                        bbox_a.lower_left_corner[2].min(bbox_b.lower_left_corner[2]),
-                    ],
-                    [
-                        bbox_a.upper_right_corner[0].max(bbox_b.upper_right_corner[0]),
-                        bbox_a.upper_right_corner[1].max(bbox_b.upper_right_corner[1]),
-                        bbox_a.upper_right_corner[2].max(bbox_b.upper_right_corner[2]),
-                    ],
-                )
-            }
-            RegionExpr::Complement(_) => crate::bounding_box::BoundingBox::new(
-                [f64::NEG_INFINITY; 3],
-                [f64::INFINITY; 3],
-            ),
         }
+
+        collect_axis_bounds(self, surfaces, &mut x_bounds, &mut y_bounds, &mut z_bounds);
+
+        // Intersect with sphere bounds if present
+        let mut sphere_bounds = None;
+        for surf in surfaces.values() {
+            if let SurfaceKind::Sphere { center, radius } = &surf.kind {
+                sphere_bounds = Some((
+                    [center[0] - *radius, center[1] - *radius, center[2] - *radius],
+                    [center[0] + *radius, center[1] + *radius, center[2] + *radius],
+                ));
+                break;
+            }
+        }
+
+        let lower = [
+            sphere_bounds.map_or(x_bounds.0, |b| x_bounds.0.max(b.0[0])),
+            sphere_bounds.map_or(y_bounds.0, |b| y_bounds.0.max(b.0[1])),
+            sphere_bounds.map_or(z_bounds.0, |b| z_bounds.0.max(b.0[2])),
+        ];
+        let upper = [
+            sphere_bounds.map_or(x_bounds.1, |b| x_bounds.1.min(b.1[0])),
+            sphere_bounds.map_or(y_bounds.1, |b| y_bounds.1.min(b.1[1])),
+            sphere_bounds.map_or(z_bounds.1, |b| z_bounds.1.min(b.1[2])),
+        ];
+
+        // If any min > max, region is empty: return empty bounding box
+        if lower[0] > upper[0] || lower[1] > upper[1] || lower[2] > upper[2] {
+            return crate::bounding_box::BoundingBox::new(
+                [f64::INFINITY; 3],
+                [f64::NEG_INFINITY; 3],
+            );
+        }
+
+        crate::bounding_box::BoundingBox::new(lower, upper)
     }
 }
 
@@ -179,5 +218,75 @@ mod tests {
         let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
         assert_eq!(bbox.lower_left_corner, [-2.0, -2.0, -2.0]);
         assert_eq!(bbox.upper_right_corner, [2.0, 2.0, 2.0]);
+    }
+
+    #[test]
+    fn test_box_and_sphere_bounding_box() {
+        // XPlanes at x=2.1 and x=-2.1, sphere at origin with radius 4.2
+        let s1 = Surface { id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 } };
+        let s2 = Surface { id: 2, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 } };
+        let s3 = Surface { id: 3, kind: SurfaceKind::Sphere { center: [0.0, 0.0, 0.0], radius: 4.2 } };
+        let mut surfaces = HashMap::new();
+        surfaces.insert(s1.id, s1.clone());
+        surfaces.insert(s2.id, s2.clone());
+        surfaces.insert(s3.id, s3.clone());
+        // Region: x >= -2.1 & x <= 2.1 & inside sphere
+        let region = Region::new_from_halfspace(HalfspaceType::Above(s2.id))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s1.id)))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s3.id)));
+        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        assert_eq!(bbox.lower_left_corner, [-2.1, -4.2, -4.2]);
+        assert_eq!(bbox.upper_right_corner, [2.1, 4.2, 4.2]);
+    }
+
+    #[test]
+    fn test_zplane_bounding_box() {
+        // ZPlane at z=3.5
+        let s = Surface { id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: 3.5 } };
+        let mut surfaces = HashMap::new();
+        surfaces.insert(s.id, s.clone());
+        // Region: z < 3.5 (Below ZPlane)
+        let region = Region::new_from_halfspace(HalfspaceType::Below(s.id));
+        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[2], 3.5);
+        assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[0], f64::INFINITY);
+        assert_eq!(bbox.lower_left_corner[1], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
+    }
+
+    #[test]
+    fn test_xplane_bounding_box() {
+        // XPlane at x=1.5
+        let s = Surface { id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 1.5 } };
+        let mut surfaces = HashMap::new();
+        surfaces.insert(s.id, s.clone());
+        // Region: x < 1.5 (Below XPlane)
+        let region = Region::new_from_halfspace(HalfspaceType::Below(s.id));
+        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[0], 1.5);
+        assert_eq!(bbox.lower_left_corner[1], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
+        assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[2], f64::INFINITY);
+    }
+
+    #[test]
+    fn test_yplane_bounding_box() {
+        // YPlane at y=-2.0
+        let s = Surface { id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: -2.0 } };
+        let mut surfaces = HashMap::new();
+        surfaces.insert(s.id, s.clone());
+        // Region: y > -2.0 (Above YPlane)
+        let region = Region::new_from_halfspace(HalfspaceType::Above(s.id));
+        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        assert_eq!(bbox.lower_left_corner[1], -2.0);
+        assert_eq!(bbox.upper_right_corner[1], f64::INFINITY);
+        assert_eq!(bbox.lower_left_corner[0], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[0], f64::INFINITY);
+        assert_eq!(bbox.lower_left_corner[2], f64::NEG_INFINITY);
+        assert_eq!(bbox.upper_right_corner[2], f64::INFINITY);
     }
 }
