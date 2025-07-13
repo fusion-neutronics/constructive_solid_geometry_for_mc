@@ -23,11 +23,15 @@ impl PySurface {
     }
 
     fn __neg__(slf: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
-        Ok(PyHalfspace::new_below(slf.inner.surface_id))
+        let py = slf.py();
+        let py_surface: Py<PySurface> = slf.into_py(py).extract(py).unwrap();
+        Ok(PyHalfspace::new_below(py_surface))
     }
 
     fn __pos__(slf: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
-        Ok(PyHalfspace::new_above(slf.inner.surface_id))
+        let py = slf.py();
+        let py_surface: Py<PySurface> = slf.into_py(py).extract(py).unwrap();
+        Ok(PyHalfspace::new_above(py_surface))
     }
 }
 

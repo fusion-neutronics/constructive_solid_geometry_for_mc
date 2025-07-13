@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use crate::surface::Surface;
 use crate::bounding_box::BoundingBox;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Region {
@@ -9,8 +10,8 @@ pub struct Region {
 
 #[derive(Clone)]
 pub enum HalfspaceType {
-    Above(usize),
-    Below(usize),
+    Above(Arc<Surface>),
+    Below(Arc<Surface>),
 }
 
 #[derive(Clone)]
@@ -47,92 +48,58 @@ impl Region {
         }
     }
     
-    // Regular Rust version of contains that takes a HashMap directly
-    pub fn contains(&self, point: (f64, f64, f64), surfaces: &HashMap<usize, Surface>) -> bool {
-        self.expr.evaluate_contains(point, surfaces)
-    }
-    
-    // Make this method available regardless of features for internal use
-    pub fn evaluate_contains(&self, point: (f64, f64, f64), surfaces: &HashMap<usize, Surface>) -> bool {
-        self.expr.evaluate_contains(point, surfaces)
+    // Updated contains method: no surface dictionary needed
+    pub fn contains(&self, point: (f64, f64, f64)) -> bool {
+        self.expr.evaluate_contains(point)
     }
 
-    pub fn bounding_box(&self, surfaces: &HashMap<usize, Surface>) -> crate::bounding_box::BoundingBox {
-        self.expr.bounding_box_with_surfaces(surfaces)
-    }
-}
-
-impl RegionExpr {
-    pub fn evaluate_contains(&self, point: (f64, f64, f64), surfaces: &HashMap<usize, Surface>) -> bool {
-        match self {
-            RegionExpr::Halfspace(hs) => match hs {
-                HalfspaceType::Above(id) => {
-                    if let Some(s) = surfaces.get(id) {
-                        s.evaluate(point) > 0.0
-                    } else {
-                        false
-                    }
-                }
-                HalfspaceType::Below(id) => {
-                    if let Some(s) = surfaces.get(id) {
-                        s.evaluate(point) < 0.0
-                    } else {
-                        false
-                    }
-                }
-            },
-            RegionExpr::Union(a, b) => a.evaluate_contains(point, surfaces) || b.evaluate_contains(point, surfaces),
-            RegionExpr::Intersection(a, b) => a.evaluate_contains(point, surfaces) && b.evaluate_contains(point, surfaces),
-            RegionExpr::Complement(inner) => !inner.evaluate_contains(point, surfaces),
-        }
+    // Updated evaluate_contains method: no surface dictionary needed
+    pub fn evaluate_contains(&self, point: (f64, f64, f64)) -> bool {
+        self.expr.evaluate_contains(point)
     }
 
-    pub fn bounding_box_with_surfaces(&self, surfaces: &HashMap<usize, Surface>) -> crate::bounding_box::BoundingBox {
+    pub fn bounding_box(&self) -> crate::bounding_box::BoundingBox {
         use crate::surface::SurfaceKind;
         let mut x_bounds = (f64::NEG_INFINITY, f64::INFINITY);
         let mut y_bounds = (f64::NEG_INFINITY, f64::INFINITY);
         let mut z_bounds = (f64::NEG_INFINITY, f64::INFINITY);
 
         // Collect axis-aligned plane bounds with correct sign convention
-        fn collect_axis_bounds(expr: &RegionExpr, surfaces: &HashMap<usize, Surface>,
+        fn collect_axis_bounds(expr: &RegionExpr,
                               x_bounds: &mut (f64, f64), y_bounds: &mut (f64, f64), z_bounds: &mut (f64, f64)) {
             match expr {
                 RegionExpr::Intersection(a, b) => {
-                    collect_axis_bounds(a, surfaces, x_bounds, y_bounds, z_bounds);
-                    collect_axis_bounds(b, surfaces, x_bounds, y_bounds, z_bounds);
+                    collect_axis_bounds(a, x_bounds, y_bounds, z_bounds);
+                    collect_axis_bounds(b, x_bounds, y_bounds, z_bounds);
                 }
                 RegionExpr::Halfspace(hs) => {
                     match hs {
-                        HalfspaceType::Below(id) => {
-                            if let Some(surf) = surfaces.get(id) {
-                                match &surf.kind {
-                                    SurfaceKind::Plane { a, b, c, d } => {
-                                        if *a == 1.0 && *b == 0.0 && *c == 0.0 {
-                                            x_bounds.1 = x_bounds.1.min(*d); // x < d
-                                        } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
-                                            y_bounds.1 = y_bounds.1.min(*d); // y < d
-                                        } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
-                                            z_bounds.1 = z_bounds.1.min(*d); // z < d
-                                        }
+                        HalfspaceType::Below(surf) => {
+                            match &surf.kind {
+                                SurfaceKind::Plane { a, b, c, d } => {
+                                    if *a == 1.0 && *b == 0.0 && *c == 0.0 {
+                                        x_bounds.1 = x_bounds.1.min(*d); // x < d
+                                    } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
+                                        y_bounds.1 = y_bounds.1.min(*d); // y < d
+                                    } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
+                                        z_bounds.1 = z_bounds.1.min(*d); // z < d
                                     }
-                                    _ => {}
                                 }
+                                _ => {}
                             }
                         }
-                        HalfspaceType::Above(id) => {
-                            if let Some(surf) = surfaces.get(id) {
-                                match &surf.kind {
-                                    SurfaceKind::Plane { a, b, c, d } => {
-                                        if *a == 1.0 && *b == 0.0 && *c == 0.0 {
-                                            x_bounds.0 = x_bounds.0.max(*d); // x > d
-                                        } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
-                                            y_bounds.0 = y_bounds.0.max(*d); // y > d
-                                        } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
-                                            z_bounds.0 = z_bounds.0.max(*d); // z > d
-                                        }
+                        HalfspaceType::Above(surf) => {
+                            match &surf.kind {
+                                SurfaceKind::Plane { a, b, c, d } => {
+                                    if *a == 1.0 && *b == 0.0 && *c == 0.0 {
+                                        x_bounds.0 = x_bounds.0.max(*d); // x > d
+                                    } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
+                                        y_bounds.0 = y_bounds.0.max(*d); // y > d
+                                    } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
+                                        z_bounds.0 = z_bounds.0.max(*d); // z > d
                                     }
-                                    _ => {}
                                 }
+                                _ => {}
                             }
                         }
                     }
@@ -141,19 +108,33 @@ impl RegionExpr {
             }
         }
 
-        collect_axis_bounds(self, surfaces, &mut x_bounds, &mut y_bounds, &mut z_bounds);
+        collect_axis_bounds(&self.expr, &mut x_bounds, &mut y_bounds, &mut z_bounds);
 
         // Intersect with sphere bounds if present
-        let mut sphere_bounds = None;
-        for surf in surfaces.values() {
-            if let SurfaceKind::Sphere { x0, y0, z0, radius } = &surf.kind {
-                sphere_bounds = Some((
-                    [*x0 - *radius, *y0 - *radius, *z0 - *radius],
-                    [*x0 + *radius, *y0 + *radius, *z0 + *radius],
-                ));
-                break;
+        fn find_sphere_bounds(expr: &RegionExpr) -> Option<([f64; 3], [f64; 3])> {
+            match expr {
+                RegionExpr::Halfspace(hs) => {
+                    match hs {
+                        HalfspaceType::Above(surf) | HalfspaceType::Below(surf) => {
+                            if let SurfaceKind::Sphere { x0, y0, z0, radius } = &surf.kind {
+                                return Some((
+                                    [*x0 - *radius, *y0 - *radius, *z0 - *radius],
+                                    [*x0 + *radius, *y0 + *radius, *z0 + *radius],
+                                ));
+                            } else {
+                                None
+                            }
+                        }
+                    }
+                }
+                RegionExpr::Intersection(a, b) | RegionExpr::Union(a, b) => {
+                    find_sphere_bounds(a).or_else(|| find_sphere_bounds(b))
+                }
+                RegionExpr::Complement(inner) => find_sphere_bounds(inner),
             }
         }
+        let mut sphere_bounds = None;
+        sphere_bounds = find_sphere_bounds(&self.expr);
 
         let lower = [
             sphere_bounds.map_or(x_bounds.0, |b| x_bounds.0.max(b.0[0])),
@@ -178,6 +159,20 @@ impl RegionExpr {
     }
 }
 
+impl RegionExpr {
+    pub fn evaluate_contains(&self, point: (f64, f64, f64)) -> bool {
+        match self {
+            RegionExpr::Halfspace(hs) => match hs {
+                HalfspaceType::Above(surf) => surf.evaluate(point) > 0.0,
+                HalfspaceType::Below(surf) => surf.evaluate(point) < 0.0,
+            },
+            RegionExpr::Union(a, b) => a.evaluate_contains(point) || b.evaluate_contains(point),
+            RegionExpr::Intersection(a, b) => a.evaluate_contains(point) && b.evaluate_contains(point),
+            RegionExpr::Complement(inner) => !inner.evaluate_contains(point),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,16 +191,16 @@ mod tests {
         surfaces.insert(s2.surface_id, s2.clone());
 
         // Build a region: inside s2 AND above s1
-        let region = Region::new_from_halfspace(crate::region::HalfspaceType::Above(s1.surface_id))
-            .intersection(&Region::new_from_halfspace(crate::region::HalfspaceType::Below(s2.surface_id)));
+        let region = Region::new_from_halfspace(crate::region::HalfspaceType::Above(Arc::new(s1.clone())))
+            .intersection(&Region::new_from_halfspace(crate::region::HalfspaceType::Below(Arc::new(s2.clone()))));
 
         // Test a point inside both
         let point = (0.0, 0.0, 0.0);
-        assert!(region.contains(point, &surfaces));
+        assert!(region.contains(point));
 
         // Test a point outside the sphere
         let point = (0.0, 0.0, 4.0);
-        assert!(!region.contains(point, &surfaces));
+        assert!(!region.contains(point));
     }
 
     #[test]
@@ -214,8 +209,8 @@ mod tests {
         let s = Surface { surface_id: 1, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 } };
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
-        let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
-        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s.clone())));
+        let bbox = region.bounding_box();
         assert_eq!(bbox.lower_left, [-2.0, -2.0, -2.0]);
         assert_eq!(bbox.upper_right, [2.0, 2.0, 2.0]);
     }
@@ -231,10 +226,10 @@ mod tests {
         surfaces.insert(s2.surface_id, s2.clone());
         surfaces.insert(s3.surface_id, s3.clone());
         // Region: x >= -2.1 & x <= 2.1 & inside sphere
-        let region = Region::new_from_halfspace(HalfspaceType::Above(s2.surface_id))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s1.surface_id)))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(s3.surface_id)));
-        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        let region = Region::new_from_halfspace(HalfspaceType::Above(Arc::new(s2.clone())))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1.clone()))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s3.clone()))));
+        let bbox = region.bounding_box();
         assert_eq!(bbox.lower_left, [-2.1, -4.2, -4.2]);
         assert_eq!(bbox.upper_right, [2.1, 4.2, 4.2]);
     }
@@ -246,8 +241,8 @@ mod tests {
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         // Region: z < 3.5 (Below ZPlane)
-        let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
-        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s.clone())));
+        let bbox = region.bounding_box();
         assert_eq!(bbox.lower_left[2], f64::NEG_INFINITY);
         assert_eq!(bbox.upper_right[2], 3.5);
         assert_eq!(bbox.lower_left[0], f64::NEG_INFINITY);
@@ -263,8 +258,8 @@ mod tests {
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         // Region: x < 1.5 (Below XPlane)
-        let region = Region::new_from_halfspace(HalfspaceType::Below(s.surface_id));
-        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s.clone())));
+        let bbox = region.bounding_box();
         assert_eq!(bbox.lower_left[0], f64::NEG_INFINITY);
         assert_eq!(bbox.upper_right[0], 1.5);
         assert_eq!(bbox.lower_left[1], f64::NEG_INFINITY);
@@ -280,8 +275,8 @@ mod tests {
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         // Region: y > -2.0 (Above YPlane)
-        let region = Region::new_from_halfspace(HalfspaceType::Above(s.surface_id));
-        let bbox = region.expr.bounding_box_with_surfaces(&surfaces);
+        let region = Region::new_from_halfspace(HalfspaceType::Above(Arc::new(s.clone())));
+        let bbox = region.bounding_box();
         assert_eq!(bbox.lower_left[1], -2.0);
         assert_eq!(bbox.upper_right[1], f64::INFINITY);
         assert_eq!(bbox.lower_left[0], f64::NEG_INFINITY);

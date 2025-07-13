@@ -1,4 +1,5 @@
 use crate::region::{RegionExpr, HalfspaceType, Region};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Surface {
@@ -88,15 +89,15 @@ pub struct Halfspace {
 }
 
 impl Halfspace {
-    pub fn new_above(id: usize) -> Self {
+    pub fn new_above(surface: Arc<Surface>) -> Self {
         Halfspace {
-            expr: RegionExpr::Halfspace(HalfspaceType::Above(id)),
+            expr: RegionExpr::Halfspace(HalfspaceType::Above(surface)),
         }
     }
 
-    pub fn new_below(id: usize) -> Self {
+    pub fn new_below(surface: Arc<Surface>) -> Self {
         Halfspace {
-            expr: RegionExpr::Halfspace(HalfspaceType::Below(id)),
+            expr: RegionExpr::Halfspace(HalfspaceType::Below(surface)),
         }
     }
 }

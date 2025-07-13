@@ -9,9 +9,9 @@ s3 = csg4mc.Sphere(x0=0, y0=0, z0=0, r=4.2, surface_id=1)
 surfaces_dict = {s1.id: s1, s2.id: s2, s3.id: s3}
 
 region1 = -s1 & +s2 & -s3
-inside = region1.contains((0, 0, 0), surfaces_dict)
+inside = region1.contains((0, 0, 0))
 print("Point inside region1?", inside)
-print(region1.bounding_box(surfaces_dict))
+print(region1.bounding_box())
 
 # region2 = +s1 & -s2 & -s3
 # inside = region2.contains((0, 0, 0), surfaces_dict)
@@ -24,7 +24,7 @@ import numpy as np
 results = []
 for y in np.linspace(-10, 10, 11):
     for x in np.linspace(-10, 10, 11):
-        contains = region1.contains((x, y, 0.), surfaces_dict)
+        contains = region1.contains((x, y, 0.))
         # print(f"Point ({x}, {y}, 0) inside region2? {contains}")
         results.append(int(contains))
 
