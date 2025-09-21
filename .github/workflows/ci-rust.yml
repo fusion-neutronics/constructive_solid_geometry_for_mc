@@ -1,0 +1,51 @@
+name: Rust tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env: 
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    name: Test on ${{ matrix.os }} / Rust
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        run: rustup update stable && rustup default stable
+      - name: Build
+        run: cargo build --verbose
+      - name: Test
+        run: cargo test --verbose
+      - name: Build Rust docs (public API)
+        run: cargo doc --no-deps
+      - name: Test examples
+        run: |
+          cd examples/rust
+          cargo build --verbose
+          cargo run
+
+  publish:
+    name: Publish to crates.io
+    needs: build_and_test
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Rust
+        run: rustup update stable && rustup default stable
+      - name: Publish to crates.io
+        run: cargo publish --verbose --locked --token ${{ secrets.CARGO_REGISTRY_TOKEN }}

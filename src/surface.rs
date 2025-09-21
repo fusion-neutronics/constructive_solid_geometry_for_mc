@@ -101,3 +101,54 @@ impl Halfspace {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_plane_creation() {
+        let plane = Surface::new_plane(1.0, 0.0, 0.0, 2.0, 42);
+        match plane.kind {
+            SurfaceKind::Plane { a, b, c, d } => {
+                assert_eq!(a, 1.0);
+                assert_eq!(b, 0.0);
+                assert_eq!(c, 0.0);
+                assert_eq!(d, 2.0);
+            }
+            _ => panic!("Not a plane"),
+        }
+        assert_eq!(plane.surface_id, 42);
+    }
+
+    #[test]
+    fn test_sphere_creation() {
+        let sphere = Surface::new_sphere(1.0, 2.0, 3.0, 5.0, 7);
+        match sphere.kind {
+            SurfaceKind::Sphere { x0, y0, z0, radius } => {
+                assert_eq!(x0, 1.0);
+                assert_eq!(y0, 2.0);
+                assert_eq!(z0, 3.0);
+                assert_eq!(radius, 5.0);
+            }
+            _ => panic!("Not a sphere"),
+        }
+        assert_eq!(sphere.surface_id, 7);
+    }
+
+    #[test]
+    fn test_cylinder_creation() {
+        let axis = [0.0, 1.0, 0.0];
+        let origin = [1.0, 2.0, 3.0];
+        let cylinder = Surface::new_cylinder(axis, origin, 2.0, 99);
+        match cylinder.kind {
+            SurfaceKind::Cylinder { axis: a, origin: o, radius } => {
+                assert_eq!(a, axis);
+                assert_eq!(o, origin);
+                assert_eq!(radius, 2.0);
+            }
+            _ => panic!("Not a cylinder"),
+        }
+        assert_eq!(cylinder.surface_id, 99);
+    }
+}
