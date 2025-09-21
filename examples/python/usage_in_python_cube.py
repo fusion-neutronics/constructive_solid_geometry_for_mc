@@ -31,15 +31,15 @@ for y in np.linspace(-10, 10, 11):
 results_np = np.array(results).reshape((11, 11))
 print(results_np)
 
-import openmc
-import matplotlib.pyplot as plt
+# import openmc
+# import matplotlib.pyplot as plt
 
-s1 = openmc.XPlane(x0=2.1)
-s2 = openmc.XPlane(x0=-2.1)
-s3 = openmc.Sphere(x0=0., y0=0., z0=0., r=4.2)
+# s1 = openmc.XPlane(x0=2.1)
+# s2 = openmc.XPlane(x0=-2.1)
+# s3 = openmc.Sphere(x0=0., y0=0., z0=0., r=4.2)
 
-region1 = -s1 & +s2 & -s3
-print(region1.bounding_box)
+# region1 = -s1 & +s2 & -s3
+# print(region1.bounding_box)
 
-region1.plot(basis='xy')
-plt.show()
+# region1.plot(basis='xy')
+# plt.show()

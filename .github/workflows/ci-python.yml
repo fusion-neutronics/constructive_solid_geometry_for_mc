@@ -70,6 +70,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           venv\Scripts\activate.ps1
+          pip install numpy
           python examples/python/usage_in_python.py
           python examples/python/usage_in_python_cube.py
           
@@ -78,6 +79,7 @@ jobs:
         shell: bash
         run: |
           source venv/bin/activate
+          pip install numpy
           python examples/python/usage_in_python.py
           python examples/python/usage_in_python_cube.py
 
