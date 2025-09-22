@@ -22,7 +22,7 @@ def test_sphere_creation():
     assert s.evaluate((1.0, 2.0, 8.0)) == pytest.approx(0.0)
 
 def test_cylinder_creation():
-    s = Cylinder(axis=(0.0, 1.0, 0.0), origin=(1.0, 2.0, 3.0), r=2.0, surface_id=46)
+    s = Cylinder(x0=1.0, y0=2.0, z0=3.0, axis_x=0.0, axis_y=1.0, axis_z=0.0, r=2.0, surface_id=46)
     assert s.id == 46
     # Point at radius from origin, perpendicular to axis (Y axis)
     assert s.evaluate((3.0, 2.0, 3.0)) == pytest.approx(0.0)

@@ -13,6 +13,17 @@ impl Default for BoundaryType {
     }
 }
 
+impl BoundaryType {
+    /// Parse a boundary type from a string, returning None for invalid strings
+    pub fn from_str_option(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "transmission" => Some(BoundaryType::Transmission),
+            "vacuum" => Some(BoundaryType::Vacuum),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Surface {
     pub surface_id: usize,
@@ -78,32 +89,48 @@ impl Surface {
     }
     
     pub fn x_plane(x0: f64, surface_id: usize) -> Self {
+        Self::x_plane_with_boundary(x0, surface_id, None)
+    }
+
+    pub fn x_plane_with_boundary(x0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: x0 },
-            boundary_type: BoundaryType::default(),
+            boundary_type: boundary_type.unwrap_or_default(),
         }
     }
 
     pub fn y_plane(y0: f64, surface_id: usize) -> Self {
+        Self::y_plane_with_boundary(y0, surface_id, None)
+    }
+
+    pub fn y_plane_with_boundary(y0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: y0 },
-            boundary_type: BoundaryType::default(),
+            boundary_type: boundary_type.unwrap_or_default(),
         }
     }
 
-
     pub fn z_plane(z0: f64, surface_id: usize) -> Self {
+        Self::z_plane_with_boundary(z0, surface_id, None)
+    }
+
+    pub fn z_plane_with_boundary(z0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
-            boundary_type: BoundaryType::default(),
+            boundary_type: boundary_type.unwrap_or_default(),
         }
     }
 
     /// Create a cylinder oriented along the Z axis, centered at (x0, y0), with given radius and surface_id
     pub fn z_cylinder(x0: f64, y0: f64, radius: f64, surface_id: usize) -> Self {
+        Self::z_cylinder_with_boundary(x0, y0, radius, surface_id, None)
+    }
+
+    /// Create a Z-cylinder with boundary type
+    pub fn z_cylinder_with_boundary(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Cylinder {
@@ -111,8 +138,95 @@ impl Surface {
                 origin: [x0, y0, 0.0],
                 radius,
             },
-            boundary_type: BoundaryType::default(),
+            boundary_type: boundary_type.unwrap_or_default(),
         }
+    }
+
+    /// Create a sphere with a specific boundary type
+    pub fn sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize) -> Self {
+        Self::sphere_with_boundary(x0, y0, z0, radius, surface_id, None)
+    }
+
+    pub fn sphere_with_boundary(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+        Surface {
+            surface_id,
+            kind: SurfaceKind::Sphere { x0, y0, z0, radius },
+            boundary_type: boundary_type.unwrap_or_default(),
+        }
+    }
+
+    /// Create a cylinder with individual axis components with a specific boundary type
+    pub fn cylinder(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize) -> Self {
+        Self::cylinder_with_boundary(x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, None)
+    }
+
+    pub fn cylinder_with_boundary(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+        Surface {
+            surface_id,
+            kind: SurfaceKind::Cylinder {
+                axis: [axis_x, axis_y, axis_z],
+                origin: [x0, y0, z0],
+                radius,
+            },
+            boundary_type: boundary_type.unwrap_or_default(),
+        }
+    }
+
+    // Python-friendly functions that accept string boundary types
+    pub fn x_plane_str(x0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::x_plane_with_boundary(x0, surface_id, boundary))
+    }
+
+    pub fn y_plane_str(y0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::y_plane_with_boundary(y0, surface_id, boundary))
+    }
+
+    pub fn z_plane_str(z0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::z_plane_with_boundary(z0, surface_id, boundary))
+    }
+
+    pub fn sphere_str(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::sphere_with_boundary(x0, y0, z0, radius, surface_id, boundary))
+    }
+
+    pub fn cylinder_str(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::cylinder_with_boundary(x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, boundary))
+    }
+
+    pub fn z_cylinder_str(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::z_cylinder_with_boundary(x0, y0, radius, surface_id, boundary))
+    }
+
+    pub fn plane_str(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+        let boundary = match boundary_type {
+            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            None => None,
+        };
+        Ok(Self::new_plane_with_boundary(a, b, c, d, surface_id, boundary.unwrap_or_default()))
     }
 
     /// Get the boundary type of the surface

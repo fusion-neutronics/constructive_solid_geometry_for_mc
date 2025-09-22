@@ -14,13 +14,10 @@ pub struct PyBoundaryType {
 impl PyBoundaryType {
     #[new]
     fn new(boundary_type: &str) -> PyResult<Self> {
-        let boundary = match boundary_type.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+        let boundary = BoundaryType::from_str_option(boundary_type)
+            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        };
+            ))?;
         Ok(PyBoundaryType { inner: boundary })
     }
 
@@ -61,13 +58,10 @@ impl PySurface {
 
     #[setter(boundary_type)]
     pub fn set_boundary_type(&mut self, boundary_type: &str) -> PyResult<()> {
-        let boundary = match boundary_type.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+        let boundary = BoundaryType::from_str_option(boundary_type)
+            .ok_or_else(|| PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        };
+            ))?;
         self.inner.set_boundary_type(boundary);
         Ok(())
     }
@@ -87,162 +81,52 @@ impl PySurface {
 
 #[pyfunction]
 pub fn XPlane(x0: f64, surface_id: usize, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface { 
-        inner: Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: x0 },
-            boundary_type: boundary,
-        }
-    })
+    let surface = Surface::x_plane_str(x0, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 #[pyfunction]
 pub fn YPlane(y0: f64, surface_id: usize, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface { 
-        inner: Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: y0 },
-            boundary_type: boundary,
-        }
-    })
+    let surface = Surface::y_plane_str(y0, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 #[pyfunction]
 pub fn ZPlane(z0: f64, surface_id: usize, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface { 
-        inner: Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
-            boundary_type: boundary,
-        }
-    })
+    let surface = Surface::z_plane_str(z0, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 #[pyfunction]
 pub fn ZCylinder(x0: f64, y0: f64, r: f64, surface_id: usize, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface { 
-        inner: Surface {
-            surface_id,
-            kind: SurfaceKind::Cylinder {
-                axis: [0.0, 0.0, 1.0],
-                origin: [x0, y0, 0.0],
-                radius: r,
-            },
-            boundary_type: boundary,
-        }
-    })
+    let surface = Surface::z_cylinder_str(x0, y0, r, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 #[pyfunction]
-pub fn Sphere(x0: Option<f64>, y0: Option<f64>, z0: Option<f64>, r: f64, surface_id: Option<usize>, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface {
-        inner: Surface {
-            surface_id: surface_id.unwrap_or(0),
-            kind: SurfaceKind::Sphere {
-                x0: x0.unwrap_or(0.0),
-                y0: y0.unwrap_or(0.0),
-                z0: z0.unwrap_or(0.0),
-                radius: r,
-            },
-            boundary_type: boundary,
-        },
-    })
+pub fn Sphere(x0: f64, y0: f64, z0: f64, r: f64, surface_id: usize, boundary_type: Option<&str>) -> PyResult<PySurface> {
+    let surface = Surface::sphere_str(x0, y0, z0, r, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 #[pyfunction]
-pub fn Cylinder(axis: (f64, f64, f64), origin: (f64, f64, f64), r: f64, surface_id: Option<usize>, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface {
-        inner: Surface {
-            surface_id: surface_id.unwrap_or(0),
-            kind: SurfaceKind::Cylinder {
-                axis: [axis.0, axis.1, axis.2],
-                origin: [origin.0, origin.1, origin.2],
-                radius: r,
-            },
-            boundary_type: boundary,
-        },
-    })
+pub fn Cylinder(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, r: f64, surface_id: usize, boundary_type: Option<&str>) -> PyResult<PySurface> {
+    let surface = Surface::cylinder_str(x0, y0, z0, axis_x, axis_y, axis_z, r, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 #[pyfunction]
 pub fn Plane(a: f64, b: f64, c: f64, d: f64, surface_id: Option<usize>, boundary_type: Option<&str>) -> PyResult<PySurface> {
-    let boundary = match boundary_type {
-        Some(bt) => match bt.to_lowercase().as_str() {
-            "transmission" => BoundaryType::Transmission,
-            "vacuum" => BoundaryType::Vacuum,
-            _ => return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "boundary_type must be 'transmission' or 'vacuum'"
-            )),
-        },
-        None => BoundaryType::default(),
-    };
-    Ok(PySurface {
-        inner: Surface {
-            surface_id: surface_id.unwrap_or(0),
-            kind: SurfaceKind::Plane { a, b, c, d },
-            boundary_type: boundary,
-        },
-    })
+    let surface_id = surface_id.unwrap_or(0);
+    let surface = Surface::plane_str(a, b, c, d, surface_id, boundary_type)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e))?;
+    Ok(PySurface { inner: surface })
 }
 
 
