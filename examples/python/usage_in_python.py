@@ -3,7 +3,7 @@ import constructive_solid_geometry_for_mc as csg4mc
 
 s1 = csg4mc.Plane(0, 0, 1, 5)
 s2 = csg4mc.Sphere(x0=0,y0=0,z0=1, r=3, surface_id=1)
-s3 = csg4mc.Cylinder((0,0,1), (0,0,0), 1,surface_id=2)
+s3 = csg4mc.Cylinder(x0=0, y0=0, z0=0, axis_x=0, axis_y=0, axis_z=1, r=1, surface_id=2)
 
 region1 = -s1 & +s2 | ~(-s3)
 
