@@ -70,8 +70,8 @@ impl PyCell {
         PyBoundingBox {
             lower_left: bbox.lower_left,
             upper_right: bbox.upper_right,
-            center: bbox.center(),
-            width: bbox.width(),
+            center: bbox.center,
+            width: bbox.width,
         }
     }
 
