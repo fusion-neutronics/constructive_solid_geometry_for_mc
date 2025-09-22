@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+// ...existing code...
 use crate::surface::Surface;
-use crate::bounding_box::BoundingBox;
+// ...existing code...
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -133,8 +133,7 @@ impl Region {
                 RegionExpr::Complement(inner) => find_sphere_bounds(inner),
             }
         }
-        let mut sphere_bounds = None;
-        sphere_bounds = find_sphere_bounds(&self.expr);
+    let sphere_bounds = find_sphere_bounds(&self.expr);
 
         let lower = [
             sphere_bounds.map_or(x_bounds.0, |b| x_bounds.0.max(b.0[0])),

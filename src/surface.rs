@@ -1,4 +1,4 @@
-use crate::region::{RegionExpr, HalfspaceType, Region};
+use crate::region::{RegionExpr, HalfspaceType};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq)]

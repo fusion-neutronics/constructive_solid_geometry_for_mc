@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
-use std::collections::HashMap;
+// ...existing code...
 
-use crate::region::{Region, RegionExpr, HalfspaceType};
-use crate::surface::Surface;
+use crate::region::{RegionExpr, HalfspaceType};
+// ...existing code...
 use crate::surface_python::PySurface;
 
 #[pyclass(name = "Region")]

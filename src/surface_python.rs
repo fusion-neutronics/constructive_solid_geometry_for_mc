@@ -1,8 +1,8 @@
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+// ...existing code...
 
-use crate::surface::{Surface, SurfaceKind, BoundaryType};
-use crate::region_python::{PyRegion, PyHalfspace};
+use crate::surface::{Surface, BoundaryType};
+use crate::region_python::{PyHalfspace};
 
 #[pyclass(name = "BoundaryType")]
 #[derive(Clone)]
