@@ -9,7 +9,7 @@ pub mod surface_python;
 pub mod region_python;
 
 // Re-export the public API for Rust users
-pub use surface::Surface;
+pub use surface::{Surface, BoundaryType};
 pub use region::{Region, RegionExpr, HalfspaceType};
 
 // Only export the Python module when the pyo3 feature is enabled
@@ -21,6 +21,7 @@ use pyo3::prelude::*;
 fn constructive_solid_geometry_for_mc(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<region_python::PyRegion>()?;
     m.add_class::<region_python::PyHalfspace>()?;
+    m.add_class::<surface_python::PyBoundaryType>()?;
     // Expose surface constructors at top level for OpenMC-style API
     use surface_python::{XPlane, YPlane, ZPlane, Sphere, Cylinder, ZCylinder, Plane};
     m.add_function(wrap_pyfunction!(XPlane, m)?)?;

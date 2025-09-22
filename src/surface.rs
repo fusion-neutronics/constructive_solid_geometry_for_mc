@@ -1,10 +1,23 @@
 use crate::region::{RegionExpr, HalfspaceType, Region};
 use std::sync::Arc;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum BoundaryType {
+    Transmission,
+    Vacuum,
+}
+
+impl Default for BoundaryType {
+    fn default() -> Self {
+        BoundaryType::Vacuum
+    }
+}
+
 #[derive(Clone)]
 pub struct Surface {
     pub surface_id: usize,
     pub kind: SurfaceKind,
+    pub boundary_type: BoundaryType,
 }
 
 #[derive(Clone)]
@@ -20,6 +33,15 @@ impl Surface {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a, b, c, d },
+            boundary_type: BoundaryType::default(),
+        }
+    }
+
+    pub fn new_plane_with_boundary(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: BoundaryType) -> Self {
+        Surface {
+            surface_id,
+            kind: SurfaceKind::Plane { a, b, c, d },
+            boundary_type,
         }
     }
 
@@ -27,6 +49,15 @@ impl Surface {
         Surface {
             surface_id,
             kind: SurfaceKind::Sphere { x0, y0, z0, radius },
+            boundary_type: BoundaryType::default(),
+        }
+    }
+
+    pub fn new_sphere_with_boundary(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: BoundaryType) -> Self {
+        Surface {
+            surface_id,
+            kind: SurfaceKind::Sphere { x0, y0, z0, radius },
+            boundary_type,
         }
     }
 
@@ -34,6 +65,15 @@ impl Surface {
         Surface {
             surface_id,
             kind: SurfaceKind::Cylinder { axis, origin, radius },
+            boundary_type: BoundaryType::default(),
+        }
+    }
+
+    pub fn new_cylinder_with_boundary(axis: [f64; 3], origin: [f64; 3], radius: f64, surface_id: usize, boundary_type: BoundaryType) -> Self {
+        Surface {
+            surface_id,
+            kind: SurfaceKind::Cylinder { axis, origin, radius },
+            boundary_type,
         }
     }
     
@@ -41,6 +81,7 @@ impl Surface {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: x0 },
+            boundary_type: BoundaryType::default(),
         }
     }
 
@@ -48,6 +89,7 @@ impl Surface {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: y0 },
+            boundary_type: BoundaryType::default(),
         }
     }
 
@@ -56,6 +98,7 @@ impl Surface {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
+            boundary_type: BoundaryType::default(),
         }
     }
 
@@ -68,7 +111,18 @@ impl Surface {
                 origin: [x0, y0, 0.0],
                 radius,
             },
+            boundary_type: BoundaryType::default(),
         }
+    }
+
+    /// Get the boundary type of the surface
+    pub fn boundary_type(&self) -> &BoundaryType {
+        &self.boundary_type
+    }
+
+    /// Set the boundary type of the surface
+    pub fn set_boundary_type(&mut self, boundary_type: BoundaryType) {
+        self.boundary_type = boundary_type;
     }
 
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
@@ -177,5 +231,29 @@ mod tests {
             _ => panic!("Not a Z cylinder"),
         }
         assert_eq!(zcyl.surface_id, 123);
+    }
+
+    #[test]
+    fn test_boundary_type_default() {
+        let plane = Surface::new_plane(1.0, 0.0, 0.0, 2.0, 42);
+        assert_eq!(*plane.boundary_type(), BoundaryType::Vacuum);
+    }
+
+    #[test]
+    fn test_boundary_type_vacuum() {
+        let sphere = Surface::new_sphere_with_boundary(0.0, 0.0, 0.0, 1.0, 1, BoundaryType::Vacuum);
+        assert_eq!(*sphere.boundary_type(), BoundaryType::Vacuum);
+    }
+
+    #[test]
+    fn test_set_boundary_type() {
+        let mut cylinder = Surface::new_cylinder([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], 1.0, 2);
+        assert_eq!(*cylinder.boundary_type(), BoundaryType::Vacuum);
+        
+        cylinder.set_boundary_type(BoundaryType::Transmission);
+        assert_eq!(*cylinder.boundary_type(), BoundaryType::Transmission);
+        
+        cylinder.set_boundary_type(BoundaryType::Vacuum);
+        assert_eq!(*cylinder.boundary_type(), BoundaryType::Vacuum);
     }
 }

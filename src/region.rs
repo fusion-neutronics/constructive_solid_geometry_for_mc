@@ -182,8 +182,8 @@ mod tests {
     #[test]
     fn test_region_contains() {
         // Create two surfaces
-        let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: -5.0 } };
-        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 3.0 } };
+        let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: -5.0 }, boundary_type: crate::surface::BoundaryType::default() };
+        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 3.0 }, boundary_type: crate::surface::BoundaryType::default() };
 
         // Map of surfaces by surface_id
         let mut surfaces = HashMap::new();
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn test_sphere_bounding_box() {
         // Sphere of radius 2 at (0,0,0)
-        let s = Surface { surface_id: 1, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 }, boundary_type: crate::surface::BoundaryType::default() };
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s.clone())));
@@ -218,9 +218,9 @@ mod tests {
     #[test]
     fn test_box_and_sphere_bounding_box() {
         // XPlanes at x=2.1 and x=-2.1, sphere at origin with radius 4.2
-        let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 } };
-        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 } };
-        let s3 = Surface { surface_id: 3, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 4.2 } };
+        let s1 = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 }, boundary_type: crate::surface::BoundaryType::default() };
+        let s2 = Surface { surface_id: 2, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 }, boundary_type: crate::surface::BoundaryType::default() };
+        let s3 = Surface { surface_id: 3, kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 4.2 }, boundary_type: crate::surface::BoundaryType::default() };
         let mut surfaces = HashMap::new();
         surfaces.insert(s1.surface_id, s1.clone());
         surfaces.insert(s2.surface_id, s2.clone());
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn test_zplane_bounding_box() {
         // ZPlane at z=3.5
-        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: 3.5 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: 3.5 }, boundary_type: crate::surface::BoundaryType::default() };
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         // Region: z < 3.5 (Below ZPlane)
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn test_xplane_bounding_box() {
         // XPlane at x=1.5
-        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 1.5 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 1.5 }, boundary_type: crate::surface::BoundaryType::default() };
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         // Region: x < 1.5 (Below XPlane)
@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn test_yplane_bounding_box() {
         // YPlane at y=-2.0
-        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: -2.0 } };
+        let s = Surface { surface_id: 1, kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: -2.0 }, boundary_type: crate::surface::BoundaryType::default() };
         let mut surfaces = HashMap::new();
         surfaces.insert(s.surface_id, s.clone());
         // Region: y > -2.0 (Above YPlane)
