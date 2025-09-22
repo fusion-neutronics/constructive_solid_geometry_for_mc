@@ -40,51 +40,27 @@ pub enum SurfaceKind {
 
 // Regular Rust implementation
 impl Surface {
-    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, surface_id: usize) -> Self {
+    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a, b, c, d },
-            boundary_type: BoundaryType::default(),
+            boundary_type: boundary_type.unwrap_or_default(),
         }
     }
 
-    pub fn new_plane_with_boundary(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: BoundaryType) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a, b, c, d },
-            boundary_type,
-        }
-    }
-
-    pub fn new_sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize) -> Self {
+    pub fn new_sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Sphere { x0, y0, z0, radius },
-            boundary_type: BoundaryType::default(),
+            boundary_type: boundary_type.unwrap_or_default(),
         }
     }
 
-    pub fn new_sphere_with_boundary(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: BoundaryType) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Sphere { x0, y0, z0, radius },
-            boundary_type,
-        }
-    }
-
-    pub fn new_cylinder(axis: [f64; 3], origin: [f64; 3], radius: f64, surface_id: usize) -> Self {
+    pub fn new_cylinder(axis: [f64; 3], origin: [f64; 3], radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Cylinder { axis, origin, radius },
-            boundary_type: BoundaryType::default(),
-        }
-    }
-
-    pub fn new_cylinder_with_boundary(axis: [f64; 3], origin: [f64; 3], radius: f64, surface_id: usize, boundary_type: BoundaryType) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Cylinder { axis, origin, radius },
-            boundary_type,
+            boundary_type: boundary_type.unwrap_or_default(),
         }
     }
     
@@ -93,11 +69,7 @@ impl Surface {
     }
 
     pub fn x_plane_with_boundary(x0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: x0 },
-            boundary_type: boundary_type.unwrap_or_default(),
-        }
+        Self::new_plane(1.0, 0.0, 0.0, x0, surface_id, boundary_type)
     }
 
     pub fn y_plane(y0: f64, surface_id: usize) -> Self {
@@ -105,11 +77,7 @@ impl Surface {
     }
 
     pub fn y_plane_with_boundary(y0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: y0 },
-            boundary_type: boundary_type.unwrap_or_default(),
-        }
+        Self::new_plane(0.0, 1.0, 0.0, y0, surface_id, boundary_type)
     }
 
     pub fn z_plane(z0: f64, surface_id: usize) -> Self {
@@ -117,11 +85,7 @@ impl Surface {
     }
 
     pub fn z_plane_with_boundary(z0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
-            boundary_type: boundary_type.unwrap_or_default(),
-        }
+        Self::new_plane(0.0, 0.0, 1.0, z0, surface_id, boundary_type)
     }
 
     /// Create a cylinder oriented along the Z axis, centered at (x0, y0), with given radius and surface_id
@@ -131,15 +95,7 @@ impl Surface {
 
     /// Create a Z-cylinder with boundary type
     pub fn z_cylinder_with_boundary(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Cylinder {
-                axis: [0.0, 0.0, 1.0],
-                origin: [x0, y0, 0.0],
-                radius,
-            },
-            boundary_type: boundary_type.unwrap_or_default(),
-        }
+        Self::new_cylinder([0.0, 0.0, 1.0], [x0, y0, 0.0], radius, surface_id, boundary_type)
     }
 
     /// Create a sphere with a specific boundary type
@@ -148,11 +104,7 @@ impl Surface {
     }
 
     pub fn sphere_with_boundary(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Sphere { x0, y0, z0, radius },
-            boundary_type: boundary_type.unwrap_or_default(),
-        }
+        Self::new_sphere(x0, y0, z0, radius, surface_id, boundary_type)
     }
 
     /// Create a cylinder with individual axis components with a specific boundary type
@@ -161,15 +113,7 @@ impl Surface {
     }
 
     pub fn cylinder_with_boundary(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Surface {
-            surface_id,
-            kind: SurfaceKind::Cylinder {
-                axis: [axis_x, axis_y, axis_z],
-                origin: [x0, y0, z0],
-                radius,
-            },
-            boundary_type: boundary_type.unwrap_or_default(),
-        }
+        Self::new_cylinder([axis_x, axis_y, axis_z], [x0, y0, z0], radius, surface_id, boundary_type)
     }
 
     // Python-friendly functions that accept string boundary types
@@ -226,7 +170,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::new_plane_with_boundary(a, b, c, d, surface_id, boundary.unwrap_or_default()))
+        Ok(Self::new_plane(a, b, c, d, surface_id, boundary))
     }
 
     /// Get the boundary type of the surface
@@ -289,7 +233,7 @@ mod tests {
 
     #[test]
     fn test_plane_creation() {
-        let plane = Surface::new_plane(1.0, 0.0, 0.0, 2.0, 42);
+        let plane = Surface::new_plane(1.0, 0.0, 0.0, 2.0, 42, None);
         match plane.kind {
             SurfaceKind::Plane { a, b, c, d } => {
                 assert_eq!(a, 1.0);
@@ -304,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_sphere_creation() {
-        let sphere = Surface::new_sphere(1.0, 2.0, 3.0, 5.0, 7);
+        let sphere = Surface::new_sphere(1.0, 2.0, 3.0, 5.0, 7, None);
         match sphere.kind {
             SurfaceKind::Sphere { x0, y0, z0, radius } => {
                 assert_eq!(x0, 1.0);
@@ -321,7 +265,7 @@ mod tests {
     fn test_cylinder_creation() {
         let axis = [0.0, 1.0, 0.0];
         let origin = [1.0, 2.0, 3.0];
-        let cylinder = Surface::new_cylinder(axis, origin, 2.0, 99);
+        let cylinder = Surface::new_cylinder(axis, origin, 2.0, 99, None);
         match cylinder.kind {
             SurfaceKind::Cylinder { axis: a, origin: o, radius } => {
                 assert_eq!(a, axis);
@@ -349,19 +293,19 @@ mod tests {
 
     #[test]
     fn test_boundary_type_default() {
-        let plane = Surface::new_plane(1.0, 0.0, 0.0, 2.0, 42);
+        let plane = Surface::new_plane(1.0, 0.0, 0.0, 2.0, 42, None);
         assert_eq!(*plane.boundary_type(), BoundaryType::Vacuum);
     }
 
     #[test]
     fn test_boundary_type_vacuum() {
-        let sphere = Surface::new_sphere_with_boundary(0.0, 0.0, 0.0, 1.0, 1, BoundaryType::Vacuum);
+        let sphere = Surface::new_sphere(0.0, 0.0, 0.0, 1.0, 1, Some(BoundaryType::Vacuum));
         assert_eq!(*sphere.boundary_type(), BoundaryType::Vacuum);
     }
 
     #[test]
     fn test_set_boundary_type() {
-        let mut cylinder = Surface::new_cylinder([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], 1.0, 2);
+        let mut cylinder = Surface::new_cylinder([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], 1.0, 2, None);
         assert_eq!(*cylinder.boundary_type(), BoundaryType::Vacuum);
         
         cylinder.set_boundary_type(BoundaryType::Transmission);
