@@ -47,6 +47,11 @@ pub fn YPlane(y0: f64, surface_id: usize) -> PySurface {
 pub fn ZPlane(z0: f64, surface_id: usize) -> PySurface {
     PySurface { inner: crate::surface::Surface::z_plane(z0, surface_id) }
 }
+
+#[pyfunction]
+pub fn ZCylinder(x0: f64, y0: f64, radius: f64, surface_id: usize) -> PySurface {
+    PySurface { inner: crate::surface::Surface::z_cylinder(x0, y0, radius, surface_id) }
+}
 #[pyfunction]
 pub fn Sphere(x0: Option<f64>, y0: Option<f64>, z0: Option<f64>, r: f64, surface_id: Option<usize>) -> PySurface {
     PySurface {

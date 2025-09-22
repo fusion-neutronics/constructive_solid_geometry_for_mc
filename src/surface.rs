@@ -51,10 +51,23 @@ impl Surface {
         }
     }
 
+
     pub fn z_plane(z0: f64, surface_id: usize) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a: 0.0, b: 0.0, c: 1.0, d: z0 },
+        }
+    }
+
+    /// Create a cylinder oriented along the Z axis, centered at (x0, y0), with given radius and surface_id
+    pub fn z_cylinder(x0: f64, y0: f64, radius: f64, surface_id: usize) -> Self {
+        Surface {
+            surface_id,
+            kind: SurfaceKind::Cylinder {
+                axis: [0.0, 0.0, 1.0],
+                origin: [x0, y0, 0.0],
+                radius,
+            },
         }
     }
 
@@ -150,5 +163,19 @@ mod tests {
             _ => panic!("Not a cylinder"),
         }
         assert_eq!(cylinder.surface_id, 99);
+    }
+
+    #[test]
+    fn test_z_cylinder_creation() {
+        let zcyl = Surface::z_cylinder(1.0, 2.0, 3.0, 123);
+        match zcyl.kind {
+            SurfaceKind::Cylinder { axis, origin, radius } => {
+                assert_eq!(axis, [0.0, 0.0, 1.0]);
+                assert_eq!(origin, [1.0, 2.0, 0.0]);
+                assert_eq!(radius, 3.0);
+            }
+            _ => panic!("Not a Z cylinder"),
+        }
+        assert_eq!(zcyl.surface_id, 123);
     }
 }
