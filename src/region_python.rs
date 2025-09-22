@@ -1,7 +1,6 @@
 use pyo3::prelude::*;
 // ...existing code...
 
-use crate::region::{RegionExpr, HalfspaceType};
 // ...existing code...
 use crate::surface_python::PySurface;
 
