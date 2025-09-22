@@ -64,55 +64,30 @@ impl Surface {
         }
     }
     
-    pub fn x_plane(x0: f64, surface_id: usize) -> Self {
-        Self::x_plane_with_boundary(x0, surface_id, None)
-    }
-
-    pub fn x_plane_with_boundary(x0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn x_plane(x0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_plane(1.0, 0.0, 0.0, x0, surface_id, boundary_type)
     }
 
-    pub fn y_plane(y0: f64, surface_id: usize) -> Self {
-        Self::y_plane_with_boundary(y0, surface_id, None)
-    }
-
-    pub fn y_plane_with_boundary(y0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn y_plane(y0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_plane(0.0, 1.0, 0.0, y0, surface_id, boundary_type)
     }
 
-    pub fn z_plane(z0: f64, surface_id: usize) -> Self {
-        Self::z_plane_with_boundary(z0, surface_id, None)
-    }
-
-    pub fn z_plane_with_boundary(z0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn z_plane(z0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_plane(0.0, 0.0, 1.0, z0, surface_id, boundary_type)
     }
 
     /// Create a cylinder oriented along the Z axis, centered at (x0, y0), with given radius and surface_id
-    pub fn z_cylinder(x0: f64, y0: f64, radius: f64, surface_id: usize) -> Self {
-        Self::z_cylinder_with_boundary(x0, y0, radius, surface_id, None)
-    }
-
-    /// Create a Z-cylinder with boundary type
-    pub fn z_cylinder_with_boundary(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn z_cylinder(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_cylinder([0.0, 0.0, 1.0], [x0, y0, 0.0], radius, surface_id, boundary_type)
     }
 
     /// Create a sphere with a specific boundary type
-    pub fn sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize) -> Self {
-        Self::sphere_with_boundary(x0, y0, z0, radius, surface_id, None)
-    }
-
-    pub fn sphere_with_boundary(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_sphere(x0, y0, z0, radius, surface_id, boundary_type)
     }
 
     /// Create a cylinder with individual axis components with a specific boundary type
-    pub fn cylinder(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize) -> Self {
-        Self::cylinder_with_boundary(x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, None)
-    }
-
-    pub fn cylinder_with_boundary(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn cylinder(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_cylinder([axis_x, axis_y, axis_z], [x0, y0, z0], radius, surface_id, boundary_type)
     }
 
@@ -122,7 +97,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::x_plane_with_boundary(x0, surface_id, boundary))
+        Ok(Self::x_plane(x0, surface_id, boundary))
     }
 
     pub fn y_plane_str(y0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
@@ -130,7 +105,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::y_plane_with_boundary(y0, surface_id, boundary))
+        Ok(Self::y_plane(y0, surface_id, boundary))
     }
 
     pub fn z_plane_str(z0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
@@ -138,7 +113,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::z_plane_with_boundary(z0, surface_id, boundary))
+        Ok(Self::z_plane(z0, surface_id, boundary))
     }
 
     pub fn sphere_str(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
@@ -146,7 +121,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::sphere_with_boundary(x0, y0, z0, radius, surface_id, boundary))
+        Ok(Self::sphere(x0, y0, z0, radius, surface_id, boundary))
     }
 
     pub fn cylinder_str(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
@@ -154,7 +129,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::cylinder_with_boundary(x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, boundary))
+        Ok(Self::cylinder(x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, boundary))
     }
 
     pub fn z_cylinder_str(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
@@ -162,7 +137,7 @@ impl Surface {
             Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
             None => None,
         };
-        Ok(Self::z_cylinder_with_boundary(x0, y0, radius, surface_id, boundary))
+        Ok(Self::z_cylinder(x0, y0, radius, surface_id, boundary))
     }
 
     pub fn plane_str(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
@@ -279,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_z_cylinder_creation() {
-        let zcyl = Surface::z_cylinder(1.0, 2.0, 3.0, 123);
+        let zcyl = Surface::z_cylinder(1.0, 2.0, 3.0, 123, None);
         match zcyl.kind {
             SurfaceKind::Cylinder { axis, origin, radius } => {
                 assert_eq!(axis, [0.0, 0.0, 1.0]);
