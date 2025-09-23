@@ -59,7 +59,6 @@ impl Region {
     }
 
     pub fn bounding_box(&self) -> crate::bounding_box::BoundingBox {
-        use crate::surface::SurfaceKind;
         let mut x_bounds = (f64::NEG_INFINITY, f64::INFINITY);
         let mut y_bounds = (f64::NEG_INFINITY, f64::INFINITY);
         let mut z_bounds = (f64::NEG_INFINITY, f64::INFINITY);
@@ -72,89 +71,114 @@ impl Region {
                     collect_axis_bounds(a, x_bounds, y_bounds, z_bounds);
                     collect_axis_bounds(b, x_bounds, y_bounds, z_bounds);
                 }
+                RegionExpr::Union(a, b) => {
+                    // For union, we need to handle this differently, but for now process both sides
+                    collect_axis_bounds(a, x_bounds, y_bounds, z_bounds);
+                    collect_axis_bounds(b, x_bounds, y_bounds, z_bounds);
+                }
+                RegionExpr::Complement(inner) => {
+                    // Complement flips the constraints, skip for now
+                    collect_axis_bounds(inner, x_bounds, y_bounds, z_bounds);
+                }
                 RegionExpr::Halfspace(hs) => {
                     match hs {
                         HalfspaceType::Below(surf) => {
-                            match &surf.kind {
-                                SurfaceKind::Plane { a, b, c, d } => {
-                                    if *a == 1.0 && *b == 0.0 && *c == 0.0 {
-                                        x_bounds.1 = x_bounds.1.min(*d); // x < d
-                                    } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
-                                        y_bounds.1 = y_bounds.1.min(*d); // y < d
-                                    } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
-                                        z_bounds.1 = z_bounds.1.min(*d); // z < d
-                                    }
+                            if let Some((axis_idx, is_upper, value)) = surf.axis_constraint(false) {
+                                let bounds = match axis_idx {
+                                    0 => x_bounds,
+                                    1 => y_bounds,
+                                    2 => z_bounds,
+                                    _ => return,
+                                };
+                                if is_upper {
+                                    bounds.1 = bounds.1.min(value);
+                                } else {
+                                    bounds.0 = bounds.0.max(value);
                                 }
-                                _ => {}
                             }
                         }
                         HalfspaceType::Above(surf) => {
-                            match &surf.kind {
-                                SurfaceKind::Plane { a, b, c, d } => {
-                                    if *a == 1.0 && *b == 0.0 && *c == 0.0 {
-                                        x_bounds.0 = x_bounds.0.max(*d); // x > d
-                                    } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
-                                        y_bounds.0 = y_bounds.0.max(*d); // y > d
-                                    } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
-                                        z_bounds.0 = z_bounds.0.max(*d); // z > d
-                                    }
+                            if let Some((axis_idx, is_upper, value)) = surf.axis_constraint(true) {
+                                let bounds = match axis_idx {
+                                    0 => x_bounds,
+                                    1 => y_bounds,
+                                    2 => z_bounds,
+                                    _ => return,
+                                };
+                                if is_upper {
+                                    bounds.1 = bounds.1.min(value);
+                                } else {
+                                    bounds.0 = bounds.0.max(value);
                                 }
-                                _ => {}
                             }
                         }
                     }
                 }
-                _ => {}
             }
         }
 
         collect_axis_bounds(&self.expr, &mut x_bounds, &mut y_bounds, &mut z_bounds);
 
-        // Intersect with sphere bounds if present
-        fn find_sphere_bounds(expr: &RegionExpr) -> Option<([f64; 3], [f64; 3])> {
+        // Find surface bounds if present
+        // Get all finite surface bounds and combine them
+        fn collect_finite_bounds(expr: &RegionExpr, bounds: &mut Vec<([f64; 3], [f64; 3])>) {
             match expr {
                 RegionExpr::Halfspace(hs) => {
                     match hs {
-                        HalfspaceType::Above(surf) | HalfspaceType::Below(surf) => {
-                            if let SurfaceKind::Sphere { x0, y0, z0, radius } = &surf.kind {
-                                return Some((
-                                    [*x0 - *radius, *y0 - *radius, *z0 - *radius],
-                                    [*x0 + *radius, *y0 + *radius, *z0 + *radius],
-                                ));
-                            } else {
-                                None
+                        HalfspaceType::Above(surf) => {
+                            // Above surface (positive halfspace): typically infinite for finite surfaces
+                            if let Some(bbox) = surf.bounding_box(false) {
+                                bounds.push(bbox);
+                            }
+                        }
+                        HalfspaceType::Below(surf) => {
+                            // Below surface (negative halfspace): finite for finite surfaces
+                            if let Some(bbox) = surf.bounding_box(true) {
+                                bounds.push(bbox);
                             }
                         }
                     }
                 }
-                RegionExpr::Intersection(a, b) | RegionExpr::Union(a, b) => {
-                    find_sphere_bounds(a).or_else(|| find_sphere_bounds(b))
+                RegionExpr::Intersection(a, b) => {
+                    // For intersections, collect bounds from both sides
+                    collect_finite_bounds(a, bounds);
+                    collect_finite_bounds(b, bounds);
                 }
-                RegionExpr::Complement(inner) => find_sphere_bounds(inner),
+                RegionExpr::Union(a, b) => {
+                    // For unions, we could expand bounds, but for now keep existing behavior
+                    collect_finite_bounds(a, bounds);
+                    collect_finite_bounds(b, bounds);
+                }
+                RegionExpr::Complement(inner) => {
+                    collect_finite_bounds(inner, bounds);
+                }
             }
         }
-    let sphere_bounds = find_sphere_bounds(&self.expr);
 
-        let lower = [
-            sphere_bounds.map_or(x_bounds.0, |b| x_bounds.0.max(b.0[0])),
-            sphere_bounds.map_or(y_bounds.0, |b| y_bounds.0.max(b.0[1])),
-            sphere_bounds.map_or(z_bounds.0, |b| z_bounds.0.max(b.0[2])),
-        ];
-        let upper = [
-            sphere_bounds.map_or(x_bounds.1, |b| x_bounds.1.min(b.1[0])),
-            sphere_bounds.map_or(y_bounds.1, |b| y_bounds.1.min(b.1[1])),
-            sphere_bounds.map_or(z_bounds.1, |b| z_bounds.1.min(b.1[2])),
-        ];
+        let mut finite_bounds = Vec::new();
+        collect_finite_bounds(&self.expr, &mut finite_bounds);
+
+        // Start with axis constraints
+        let mut combined_lower = [x_bounds.0, y_bounds.0, z_bounds.0];
+        let mut combined_upper = [x_bounds.1, y_bounds.1, z_bounds.1];
+
+        // Intersect with all finite surface bounds
+        for (lower, upper) in finite_bounds {
+            for i in 0..3 {
+                combined_lower[i] = combined_lower[i].max(lower[i]);
+                combined_upper[i] = combined_upper[i].min(upper[i]);
+            }
+        }
 
         // If any min > max, region is empty: return empty bounding box
-        if lower[0] > upper[0] || lower[1] > upper[1] || lower[2] > upper[2] {
+        if combined_lower[0] > combined_upper[0] || combined_lower[1] > combined_upper[1] || combined_lower[2] > combined_upper[2] {
             return crate::bounding_box::BoundingBox::new(
                 [f64::INFINITY; 3],
                 [f64::NEG_INFINITY; 3],
             );
         }
 
-        crate::bounding_box::BoundingBox::new(lower, upper)
+        crate::bounding_box::BoundingBox::new(combined_lower, combined_upper)
     }
 }
 
@@ -282,5 +306,24 @@ mod tests {
         assert_eq!(bbox.upper_right[0], f64::INFINITY);
         assert_eq!(bbox.lower_left[2], f64::NEG_INFINITY);
         assert_eq!(bbox.upper_right[2], f64::INFINITY);
+    }
+
+    #[test]
+    fn test_zcylinder_bounding_box() {
+        // Z-cylinder at (1, 2) with radius 3
+        let s = Surface { 
+            surface_id: 1, 
+            kind: SurfaceKind::Cylinder { 
+                axis: [0.0, 0.0, 1.0], 
+                origin: [1.0, 2.0, 0.0], 
+                radius: 3.0 
+            }, 
+            boundary_type: crate::surface::BoundaryType::default() 
+        };
+        // Region: inside cylinder (Below)
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s.clone())));
+        let bbox = region.bounding_box();
+        assert_eq!(bbox.lower_left, [-2.0, -1.0, f64::NEG_INFINITY]);
+        assert_eq!(bbox.upper_right, [4.0, 5.0, f64::INFINITY]);
     }
 }

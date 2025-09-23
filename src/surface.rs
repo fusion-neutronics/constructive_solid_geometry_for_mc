@@ -181,6 +181,74 @@ impl Surface {
             }
         }
     }
+
+    /// Get the bounding box for this surface when used as a halfspace.
+    /// For finite surfaces like spheres and cylinders, returns the bounding box bounds for the negative halfspace (inside).
+    /// For axis-aligned planes, returns None as they should only contribute axis constraints.
+    /// halfspace_below: true for negative halfspace (inside), false for positive halfspace (outside)
+    pub fn bounding_box(&self, halfspace_below: bool) -> Option<([f64; 3], [f64; 3])> {
+        match &self.kind {
+            SurfaceKind::Plane { .. } => {
+                // Planes contribute constraints through axis_constraint(), not bounding_box()
+                None
+            }
+            SurfaceKind::Sphere { x0, y0, z0, radius } => {
+                if halfspace_below {
+                    // Inside sphere: bounded
+                    Some((
+                        [*x0 - *radius, *y0 - *radius, *z0 - *radius],
+                        [*x0 + *radius, *y0 + *radius, *z0 + *radius],
+                    ))
+                } else {
+                    // Outside sphere: infinite
+                    None
+                }
+            }
+            SurfaceKind::Cylinder { axis, origin, radius } => {
+                // For now, only handle Z-cylinders (axis = [0, 0, 1])
+                if axis[0].abs() < 1e-10 && axis[1].abs() < 1e-10 && (axis[2] - 1.0).abs() < 1e-10 {
+                    if halfspace_below {
+                        // Inside cylinder: bounded in X,Y, infinite in Z
+                        Some((
+                            [origin[0] - *radius, origin[1] - *radius, f64::NEG_INFINITY],
+                            [origin[0] + *radius, origin[1] + *radius, f64::INFINITY],
+                        ))
+                    } else {
+                        // Outside cylinder: infinite
+                        None
+                    }
+                } else {
+                    // For non-Z-aligned cylinders, we'd need more complex bounding box calculation
+                    // For now, return None (infinite bounds)
+                    None
+                }
+            }
+        }
+    }
+
+    /// Get the constraint this surface imposes on axis-aligned bounds when used as a halfspace.
+    /// Returns (axis_index, is_upper_bound, value) or None if no axis constraint.
+    pub fn axis_constraint(&self, halfspace_above: bool) -> Option<(usize, bool, f64)> {
+        match &self.kind {
+            SurfaceKind::Plane { a, b, c, d } => {
+                if *a == 1.0 && *b == 0.0 && *c == 0.0 {
+                    // X plane: ax + by + cz - d = x - d = 0, so x = d
+                    // Above (x - d > 0, x > d) gives lower bound at d
+                    // Below (x - d < 0, x < d) gives upper bound at d
+                    Some((0, !halfspace_above, *d))
+                } else if *a == 0.0 && *b == 1.0 && *c == 0.0 {
+                    // Y plane: y - d = 0, so y = d
+                    Some((1, !halfspace_above, *d))
+                } else if *a == 0.0 && *b == 0.0 && *c == 1.0 {
+                    // Z plane: z - d = 0, so z = d
+                    Some((2, !halfspace_above, *d))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -288,5 +356,21 @@ mod tests {
         
         cylinder.set_boundary_type(BoundaryType::Vacuum);
         assert_eq!(*cylinder.boundary_type(), BoundaryType::Vacuum);
+    }
+
+    #[test]
+    fn test_zcylinder_bounding_box() {
+        let zcyl = Surface::z_cylinder(1.0, 2.0, 3.0, 123, None);
+        
+        // Test inside cylinder (halfspace_below = true)
+        let bbox = zcyl.bounding_box(true);
+        assert!(bbox.is_some());
+        let (lower, upper) = bbox.unwrap();
+        assert_eq!(lower, [-2.0, -1.0, f64::NEG_INFINITY]);
+        assert_eq!(upper, [4.0, 5.0, f64::INFINITY]);
+        
+        // Test outside cylinder (halfspace_below = false)
+        let bbox_outside = zcyl.bounding_box(false);
+        assert!(bbox_outside.is_none()); // Outside cylinder is infinite
     }
 }

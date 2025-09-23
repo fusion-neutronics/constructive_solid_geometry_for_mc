@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 // ...existing code...
 
 use crate::surface::{Surface, BoundaryType};
-use crate::region_python::{PyHalfspace};
+use crate::region_python::{PyHalfspace, PyBoundingBox};
 
 #[pyclass(name = "BoundaryType")]
 #[derive(Clone)]
@@ -46,6 +46,49 @@ impl PySurface {
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         // Call the core Rust implementation
         self.inner.evaluate(point)
+    }
+
+    /// Get the bounding box for the inside (negative halfspace) of this surface
+    pub fn bounding_box_inside(&self) -> Option<PyBoundingBox> {
+        self.inner.bounding_box(true).map(|(lower, upper)| PyBoundingBox {
+            lower_left: lower,
+            upper_right: upper,
+            center: [
+                (lower[0] + upper[0]) / 2.0,
+                (lower[1] + upper[1]) / 2.0,
+                (lower[2] + upper[2]) / 2.0,
+            ],
+            width: [
+                upper[0] - lower[0],
+                upper[1] - lower[1],
+                upper[2] - lower[2],
+            ],
+        })
+    }
+
+    pub fn bounding_box_outside(&self) -> Option<PyBoundingBox> {
+        self.inner.bounding_box(false).map(|(lower, upper)| PyBoundingBox {
+            lower_left: lower,
+            upper_right: upper,
+            center: [
+                (lower[0] + upper[0]) / 2.0,
+                (lower[1] + upper[1]) / 2.0,
+                (lower[2] + upper[2]) / 2.0,
+            ],
+            width: [
+                upper[0] - lower[0],
+                upper[1] - lower[1],
+                upper[2] - lower[2],
+            ],
+        })
+    }
+
+    /// Get axis constraint for this surface when used as a halfspace
+    /// Returns (axis_index, is_upper_bound, value) or None
+    /// axis_index: 0=X, 1=Y, 2=Z
+    /// is_upper_bound: True if this constrains the upper bound, False for lower bound
+    pub fn axis_constraint(&self, halfspace_below: bool) -> Option<(usize, bool, f64)> {
+        self.inner.axis_constraint(halfspace_below)
     }
 
     #[getter]
