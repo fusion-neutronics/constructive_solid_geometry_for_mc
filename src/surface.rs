@@ -272,6 +272,23 @@ impl Halfspace {
 
 #[cfg(test)]
 mod tests {
+    use crate::region::{Region, HalfspaceType};
+    #[test]
+    fn test_zcylinder_with_zplanes_bounding_box() {
+        // Z-cylinder centered at (1, 2) with radius 3
+        let cyl = Surface::z_cylinder(1.0, 2.0, 3.0, 1, None);
+        // Z planes at z = -5 and z = 5
+        let z_bottom = Surface::z_plane(-5.0, 2, None);
+        let z_top = Surface::z_plane(5.0, 3, None);
+
+        // Region: inside cylinder and between Z planes
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(cyl)))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(z_bottom))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(z_top))));
+        let bbox = region.bounding_box();
+        assert_eq!(bbox.lower_left, [-2.0, -1.0, -5.0]);
+        assert_eq!(bbox.upper_right, [4.0, 5.0, 5.0]);
+    }
     use super::*;
 
     #[test]

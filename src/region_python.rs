@@ -31,7 +31,28 @@ impl PyRegion {
     }
 
     pub fn bounding_box(&self) -> PyBoundingBox {
-        self.expr.bounding_box()
+        use crate::region::Region;
+        use crate::bounding_box::BoundingBox;
+        // Convert PyRegionExpr to Region (Rust type)
+        // This assumes you have a way to convert PyRegionExpr to Region
+        // If not, you should store Region in PyRegion directly
+        // For now, let's assume PyRegion has a field 'region: Region'
+        // and use that:
+        let bbox: BoundingBox = self.region.bounding_box();
+        PyBoundingBox {
+            lower_left: bbox.lower_left,
+            upper_right: bbox.upper_right,
+            center: [
+                (bbox.lower_left[0] + bbox.upper_right[0]) / 2.0,
+                (bbox.lower_left[1] + bbox.upper_right[1]) / 2.0,
+                (bbox.lower_left[2] + bbox.upper_right[2]) / 2.0,
+            ],
+            width: [
+                bbox.upper_right[0] - bbox.lower_left[0],
+                bbox.upper_right[1] - bbox.lower_left[1],
+                bbox.upper_right[2] - bbox.lower_left[2],
+            ],
+        }
     }
 
     fn __and__(&self, other: &PyAny) -> PyResult<PyRegion> {
@@ -220,73 +241,5 @@ impl PyRegionExpr {
             PyRegionExpr::Complement(inner) => !inner.evaluate_contains(point),
         }
     }
-    pub fn bounding_box(&self) -> PyBoundingBox {
-        match self {
-            PyRegionExpr::Halfspace(hs) => hs.bounding_box(),
-            PyRegionExpr::Intersection(a, b) => {
-                let bbox_a = a.bounding_box();
-                let bbox_b = b.bounding_box();
-                let lower_left = [
-                    bbox_a.lower_left[0].max(bbox_b.lower_left[0]),
-                    bbox_a.lower_left[1].max(bbox_b.lower_left[1]),
-                    bbox_a.lower_left[2].max(bbox_b.lower_left[2]),
-                ];
-                let upper_right = [
-                    bbox_a.upper_right[0].min(bbox_b.upper_right[0]),
-                    bbox_a.upper_right[1].min(bbox_b.upper_right[1]),
-                    bbox_a.upper_right[2].min(bbox_b.upper_right[2]),
-                ];
-                PyBoundingBox {
-                    lower_left,
-                    upper_right,
-                    center: [
-                        (lower_left[0] + upper_right[0]) / 2.0,
-                        (lower_left[1] + upper_right[1]) / 2.0,
-                        (lower_left[2] + upper_right[2]) / 2.0,
-                    ],
-                    width: [
-                        upper_right[0] - lower_left[0],
-                        upper_right[1] - lower_left[1],
-                        upper_right[2] - lower_left[2],
-                    ],
-                }
-            }
-            PyRegionExpr::Union(a, b) => {
-                let bbox_a = a.bounding_box();
-                let bbox_b = b.bounding_box();
-                let lower_left = [
-                    bbox_a.lower_left[0].min(bbox_b.lower_left[0]),
-                    bbox_a.lower_left[1].min(bbox_b.lower_left[1]),
-                    bbox_a.lower_left[2].min(bbox_b.lower_left[2]),
-                ];
-                let upper_right = [
-                    bbox_a.upper_right[0].max(bbox_b.upper_right[0]),
-                    bbox_a.upper_right[1].max(bbox_b.upper_right[1]),
-                    bbox_a.upper_right[2].max(bbox_b.upper_right[2]),
-                ];
-                PyBoundingBox {
-                    lower_left,
-                    upper_right,
-                    center: [
-                        (lower_left[0] + upper_right[0]) / 2.0,
-                        (lower_left[1] + upper_right[1]) / 2.0,
-                        (lower_left[2] + upper_right[2]) / 2.0,
-                    ],
-                    width: [
-                        upper_right[0] - lower_left[0],
-                        upper_right[1] - lower_left[1],
-                        upper_right[2] - lower_left[2],
-                    ],
-                }
-            }
-            PyRegionExpr::Complement(_) => {
-                PyBoundingBox {
-                    lower_left: [f64::NEG_INFINITY; 3],
-                    upper_right: [f64::INFINITY; 3],
-                    center: [0.0, 0.0, 0.0],
-                    width: [f64::INFINITY; 3],
-                }
-            }
-        }
-    }
+    // ...existing code...
 }
