@@ -40,6 +40,84 @@ pub enum SurfaceKind {
 
 // Regular Rust implementation
 impl Surface {
+    /// Compute the distance from a point along a direction to the surface.
+    /// Returns Some(distance) if intersection exists and distance > 0, else None.
+    pub fn distance_to_surface(&self, point: [f64; 3], direction: [f64; 3]) -> Option<f64> {
+        match &self.kind {
+            SurfaceKind::Plane { a, b, c, d } => {
+                // Plane: ax + by + cz - d = 0
+                let denom = a * direction[0] + b * direction[1] + c * direction[2];
+                if denom.abs() < 1e-12 {
+                    // Parallel, no intersection
+                    return None;
+                }
+                let num = d - (a * point[0] + b * point[1] + c * point[2]);
+                let t = num / denom;
+                if t > 0.0 {
+                    Some(t)
+                } else {
+                    None
+                }
+            }
+            SurfaceKind::Sphere { x0, y0, z0, radius } => {
+                // Ray-sphere intersection: (p + t*v - c)·(p + t*v - c) = r^2
+                let oc = [point[0] - x0, point[1] - y0, point[2] - z0];
+                let a = direction[0]*direction[0] + direction[1]*direction[1] + direction[2]*direction[2];
+                let b = 2.0 * (oc[0]*direction[0] + oc[1]*direction[1] + oc[2]*direction[2]);
+                let c = oc[0]*oc[0] + oc[1]*oc[1] + oc[2]*oc[2] - radius*radius;
+                let disc = b*b - 4.0*a*c;
+                if disc < 0.0 {
+                    return None;
+                }
+                let sqrt_disc = disc.sqrt();
+                let t1 = (-b - sqrt_disc) / (2.0*a);
+                let t2 = (-b + sqrt_disc) / (2.0*a);
+                // Return the smallest positive t
+                if t1 > 1e-12 {
+                    Some(t1)
+                } else if t2 > 1e-12 {
+                    Some(t2)
+                } else {
+                    None
+                }
+            }
+            SurfaceKind::Cylinder { axis, origin, radius } => {
+                // Ray-cylinder intersection (infinite cylinder)
+                // Cylinder: ( (p-c) - ((p-c)·a)a )^2 = r^2
+                // Ray: p + t*v
+                let p = point;
+                let v = direction;
+                let c = origin;
+                let a_axis = axis;
+                // Compute d = v - (v·a)a
+                let v_dot_a = v[0]*a_axis[0] + v[1]*a_axis[1] + v[2]*a_axis[2];
+                let d = [v[0] - v_dot_a*a_axis[0], v[1] - v_dot_a*a_axis[1], v[2] - v_dot_a*a_axis[2]];
+                // Compute delta_p = p - c
+                let delta_p = [p[0] - c[0], p[1] - c[1], p[2] - c[2]];
+                let delta_p_dot_a = delta_p[0]*a_axis[0] + delta_p[1]*a_axis[1] + delta_p[2]*a_axis[2];
+                let m = [delta_p[0] - delta_p_dot_a*a_axis[0], delta_p[1] - delta_p_dot_a*a_axis[1], delta_p[2] - delta_p_dot_a*a_axis[2]];
+                let a_c = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+                let b_c = 2.0 * (d[0]*m[0] + d[1]*m[1] + d[2]*m[2]);
+                let c_c = m[0]*m[0] + m[1]*m[1] + m[2]*m[2] - radius*radius;
+                let disc = b_c*b_c - 4.0*a_c*c_c;
+                if disc < 0.0 || a_c.abs() < 1e-12 {
+                    return None;
+                }
+                let sqrt_disc = disc.sqrt();
+                let t1 = (-b_c - sqrt_disc) / (2.0*a_c);
+                let t2 = (-b_c + sqrt_disc) / (2.0*a_c);
+                if t1 > 1e-12 {
+                    Some(t1)
+                } else if t2 > 1e-12 {
+                    Some(t2)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
     pub fn new_plane(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Surface {
             surface_id,
@@ -389,5 +467,57 @@ mod tests {
         // Test outside cylinder (halfspace_below = false)
         let bbox_outside = zcyl.bounding_box(false);
         assert!(bbox_outside.is_none()); // Outside cylinder is infinite
+    }
+}
+
+#[cfg(test)]
+mod distance_tests {
+    #[test]
+    fn test_sphere_distance() {
+        let sphere = Surface::new_sphere(0.0, 0.0, 0.0, 1.0, 1, None);
+        // From (2,0,0) toward center
+        let d = sphere.distance_to_surface([2.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert!((d.unwrap() - 1.0).abs() < 1e-10);
+        // From (0,0,0) outward
+        let d2 = sphere.distance_to_surface([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert!((d2.unwrap() - 1.0).abs() < 1e-10);
+        // No intersection
+        let d3 = sphere.distance_to_surface([2.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d3, None);
+    }
+
+    #[test]
+    fn test_cylinder_distance() {
+        // Z-cylinder at (0,0), r=1
+        let cyl = Surface::z_cylinder(0.0, 0.0, 1.0, 1, None);
+        // From (2,0,0) toward center
+        let d = cyl.distance_to_surface([2.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert!((d.unwrap() - 1.0).abs() < 1e-10);
+        // From (0,2,0) toward center
+        let d2 = cyl.distance_to_surface([0.0, 2.0, 0.0], [0.0, -1.0, 0.0]);
+        assert!((d2.unwrap() - 1.0).abs() < 1e-10);
+        // From (0,0,0) radially outward
+        let d3 = cyl.distance_to_surface([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert!((d3.unwrap() - 1.0).abs() < 1e-10);
+        // No intersection
+        let d4 = cyl.distance_to_surface([2.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d4, None);
+    }
+    use super::*;
+    #[test]
+    fn test_xplane_distance() {
+        let plane = Surface::x_plane(5.0, 1, None);
+        // From (0,0,0) in +x direction
+        let d = plane.distance_to_surface([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d, Some(5.0));
+        // From (0,0,0) in -x direction
+        let d2 = plane.distance_to_surface([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert_eq!(d2, None);
+        // From (10,0,0) in -x direction
+        let d3 = plane.distance_to_surface([10.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert_eq!(d3, Some(5.0));
+        // Parallel direction
+        let d4 = plane.distance_to_surface([0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
+        assert_eq!(d4, None);
     }
 }

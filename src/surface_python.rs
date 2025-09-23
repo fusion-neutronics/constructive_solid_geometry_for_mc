@@ -43,6 +43,12 @@ pub struct PySurface {
 
 #[pymethods]
 impl PySurface {
+
+    /// Compute the distance from a point along a direction to the surface.
+    /// Returns float if intersection exists and distance > 0, else None.
+    pub fn distance_to_surface(&self, point: (f64, f64, f64), direction: (f64, f64, f64)) -> Option<f64> {
+        self.inner.distance_to_surface([point.0, point.1, point.2], [direction.0, direction.1, direction.2])
+    }
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         // Call the core Rust implementation
         self.inner.evaluate(point)
