@@ -16,12 +16,27 @@ impl PyCell {
     #[pyo3(signature = (cell_id, region, material_id=None, name=None))]
     pub fn new(
         cell_id: u32,
-        region: PyRegion,
+        region: &PyAny,
         material_id: Option<u32>,
         name: Option<String>,
     ) -> PyResult<Self> {
+        // Convert region to PyRegion (handle both PyRegion and PyHalfspace)
+        let py_region = if let Ok(py_region) = region.extract::<PyRef<PyRegion>>() {
+            py_region.clone()
+        } else if let Ok(py_halfspace) = region.extract::<PyRef<crate::region_python::PyHalfspace>>() {
+            // Convert PyHalfspace to PyRegion
+            use crate::region_python::PyRegionExpr;
+            PyRegion {
+                expr: PyRegionExpr::Halfspace(py_halfspace.clone()),
+            }
+        } else {
+            return Err(pyo3::exceptions::PyTypeError::new_err(
+                "region must be PyRegion or PyHalfspace"
+            ));
+        };
+        
         // Convert PyRegion to Region
-        let rust_region = region.to_rust_region()?;
+        let rust_region = py_region.to_rust_region()?;
         
         let mut cell = if let Some(mat_id) = material_id {
             Cell::new_with_material(cell_id, rust_region, mat_id)

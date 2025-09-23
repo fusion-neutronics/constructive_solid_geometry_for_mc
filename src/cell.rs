@@ -207,4 +207,178 @@ mod tests {
         assert_eq!(cell.cell_id, 2);
         assert!(cell.is_void());
     }
+
+    #[test]
+    fn test_complex_region_cell() {
+        // Create multiple surfaces for a box-like region
+        let x_min = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let x_max = Surface {
+            surface_id: 2,
+            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let y_min = Surface {
+            surface_id: 3,
+            kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: -1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let y_max = Surface {
+            surface_id: 4,
+            kind: SurfaceKind::Plane { a: 0.0, b: 1.0, c: 0.0, d: 1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+
+        // Create box region: -1 < x < 1 AND -1 < y < 1
+        let box_region = Region::new_from_halfspace(HalfspaceType::Above(Arc::new(x_min)))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(x_max))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(y_min))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(y_max))));
+
+        let box_cell = Cell::new_with_material(10, box_region, 202)
+            .with_name("box_cell".to_string());
+
+        // Test points
+        assert!(box_cell.contains((0.0, 0.0, 0.0))); // Inside box
+        assert!(box_cell.contains((0.5, 0.5, 100.0))); // Inside box (z unconstrained)
+        assert!(!box_cell.contains((1.5, 0.0, 0.0))); // Outside box (x too large)
+        assert!(!box_cell.contains((0.0, 1.5, 0.0))); // Outside box (y too large)
+
+        // Test cell properties
+        assert_eq!(box_cell.cell_id, 10);
+        assert_eq!(box_cell.name.as_ref().unwrap(), "box_cell");
+        assert_eq!(box_cell.material_id(), Some(202));
+        assert!(!box_cell.is_void());
+    }
+
+    #[test]
+    fn test_union_region_cell() {
+        // Create two spheres
+        let sphere1 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: -1.0, y0: 0.0, z0: 0.0, radius: 1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let sphere2 = Surface {
+            surface_id: 2,
+            kind: SurfaceKind::Sphere { x0: 1.0, y0: 0.0, z0: 0.0, radius: 1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+
+        // Create union of two spheres
+        let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere1)));
+        let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere2)));
+        let union_region = region1.union(&region2);
+
+        let union_cell = Cell::new_with_material(20, union_region, 303);
+
+        // Test points
+        assert!(union_cell.contains((-1.0, 0.0, 0.0))); // Center of first sphere
+        assert!(union_cell.contains((1.0, 0.0, 0.0))); // Center of second sphere
+        assert!(union_cell.contains((0.0, 0.0, 0.0))); // Between spheres (overlapping region)
+        assert!(!union_cell.contains((0.0, 2.0, 0.0))); // Outside both spheres
+        assert!(!union_cell.contains((3.0, 0.0, 0.0))); // Far from both spheres
+    }
+
+    #[test]
+    fn test_cell_bounding_box() {
+        // Create a sphere
+        let sphere = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 1.0, y0: 2.0, z0: 3.0, radius: 1.5 },
+            boundary_type: BoundaryType::default(),
+        };
+
+        let sphere_region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
+        let sphere_cell = Cell::new_with_material(100, sphere_region, 400);
+
+        let bbox = sphere_cell.bounding_box();
+        
+        // Check bounding box
+        assert_eq!(bbox.lower_left, [-0.5, 0.5, 1.5]); // center - radius
+        assert_eq!(bbox.upper_right, [2.5, 3.5, 4.5]); // center + radius
+        assert_eq!(bbox.center, [1.0, 2.0, 3.0]); // sphere center
+        assert_eq!(bbox.width, [3.0, 3.0, 3.0]); // 2 * radius
+    }
+
+    #[test]
+    fn test_universe_multiple_cells() {
+        // Create concentric spheres
+        let inner_sphere = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let outer_sphere = Surface {
+            surface_id: 2,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            boundary_type: BoundaryType::default(),
+        };
+
+        // Create regions
+        let inner_region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(inner_sphere.clone())));
+        let shell_region = Region::new_from_halfspace(HalfspaceType::Above(Arc::new(inner_sphere)))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(outer_sphere.clone()))));
+        let outer_region = Region::new_from_halfspace(HalfspaceType::Above(Arc::new(outer_sphere)));
+
+        // Create cells
+        let fuel_cell = Cell::new_with_material(1, inner_region, 235).with_name("fuel".to_string());
+        let moderator_cell = Cell::new_with_material(2, shell_region, 1001).with_name("moderator".to_string());
+        let void_cell = Cell::new_void(3, outer_region).with_name("void".to_string());
+
+        // Create universe
+        let mut universe = Universe::new(1).with_name("reactor_cell".to_string());
+        universe.add_cell(fuel_cell);
+        universe.add_cell(moderator_cell);
+        universe.add_cell(void_cell);
+
+        // Test various points
+        let test_cases = vec![
+            ((0.0, 0.0, 0.0), 1, Some(235), "fuel"), // Center - fuel
+            ((0.5, 0.0, 0.0), 1, Some(235), "fuel"), // Inside fuel
+            ((1.5, 0.0, 0.0), 2, Some(1001), "moderator"), // In shell
+            ((2.5, 0.0, 0.0), 3, None, "void"), // Outside
+        ];
+
+        for (point, expected_cell_id, expected_material, description) in test_cases {
+            let cell = universe.find_cell(point).expect(&format!("No cell found for point {:?} ({})", point, description));
+            assert_eq!(cell.cell_id, expected_cell_id, "Wrong cell ID for {} at {:?}", description, point);
+            assert_eq!(cell.material_id(), expected_material, "Wrong material for {} at {:?}", description, point);
+        }
+
+        // Test universe properties
+        assert_eq!(universe.universe_id, 1);
+        assert_eq!(universe.name.as_ref().unwrap(), "reactor_cell");
+        assert_eq!(universe.cells.len(), 3);
+
+        // Test get_cell
+        let fuel = universe.get_cell(1).unwrap();
+        assert_eq!(fuel.name.as_ref().unwrap(), "fuel");
+        assert_eq!(fuel.material_id(), Some(235));
+
+        assert!(universe.get_cell(999).is_none()); // Non-existent cell
+    }
+
+    #[test]
+    fn test_cell_fill_types() {
+        let sphere = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 1.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
+
+        // Test material cell
+        let material_cell = Cell::new_with_material(1, region.clone(), 123);
+        assert!(!material_cell.is_void());
+        assert_eq!(material_cell.material_id(), Some(123));
+
+        // Test void cell
+        let void_cell = Cell::new_void(2, region);
+        assert!(void_cell.is_void());
+        assert_eq!(void_cell.material_id(), None);
+    }
 }
