@@ -46,7 +46,7 @@ mod tests {
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
-    let cell = Cell::new(1, region, Some(101), None);
+        let cell = Cell::new(1, region, None);
         assert!(cell.contains((0.0, 0.0, 0.0)));
         assert!(!cell.contains((3.0, 0.0, 0.0)));
     }
@@ -67,16 +67,16 @@ mod tests {
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1.clone())));
         let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2.clone())));
         // Union
-    let union_cell = Cell::new(2, region1.clone().union(&region2.clone()), Some(102), None);
+        let union_cell = Cell::new(2, region1.clone().union(&region2.clone()), None);
         assert!(union_cell.contains((0.0, 0.0, 0.0)));
         assert!(union_cell.contains((2.0, 0.0, 0.0)));
         assert!(!union_cell.contains((5.0, 0.0, 0.0)));
         // Intersection
-    let intersection_cell = Cell::new(3, region1.clone().intersection(&region2.clone()), Some(103), None);
+        let intersection_cell = Cell::new(3, region1.clone().intersection(&region2.clone()), None);
         assert!(!intersection_cell.contains((0.0, 0.0, 0.0)));
         assert!(intersection_cell.contains((1.0, 0.0, 0.0)));
         // Complement
-    let complement_cell = Cell::new(4, region1.complement(), None, None);
+        let complement_cell = Cell::new(4, region1.complement(), None);
         assert!(!complement_cell.contains((0.0, 0.0, 0.0)));
         assert!(complement_cell.contains((5.0, 0.0, 0.0)));
     }
@@ -89,8 +89,7 @@ mod tests {
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
-    let cell = Cell::new(1, region, Some(101), Some("fuel".to_string()));
+        let cell = Cell::new(1, region, Some("fuel".to_string()));
         assert_eq!(cell.name, Some("fuel".to_string()));
-        assert!(!cell.is_void());
     }
 }

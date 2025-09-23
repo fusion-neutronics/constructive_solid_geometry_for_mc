@@ -111,16 +111,27 @@ impl PySurface {
         Ok(())
     }
 
-    fn __neg__(slf: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
+
+    fn __neg__(slf: PyRef<'_, Self>) -> PyResult<crate::region_python::PyRegion> {
+        use crate::region_python::{PyRegion, PyRegionExpr};
         let py = slf.py();
-        let py_surface: Py<PySurface> = slf.into_py(py).extract(py).unwrap();
-        Ok(PyHalfspace::new_below(py_surface))
+        let py_surface: Py<crate::surface_python::PySurface> = slf.into_py(py).extract(py).unwrap();
+        let expr = PyRegionExpr::Halfspace(crate::region_python::PyHalfspace::new_below(py_surface));
+        let region = crate::region::Region {
+            expr: expr.to_region_expr()
+        };
+        Ok(PyRegion { expr, region })
     }
 
-    fn __pos__(slf: PyRef<'_, Self>) -> PyResult<PyHalfspace> {
+    fn __pos__(slf: PyRef<'_, Self>) -> PyResult<crate::region_python::PyRegion> {
+        use crate::region_python::{PyRegion, PyRegionExpr};
         let py = slf.py();
-        let py_surface: Py<PySurface> = slf.into_py(py).extract(py).unwrap();
-        Ok(PyHalfspace::new_above(py_surface))
+        let py_surface: Py<crate::surface_python::PySurface> = slf.into_py(py).extract(py).unwrap();
+        let expr = PyRegionExpr::Halfspace(crate::region_python::PyHalfspace::new_above(py_surface));
+        let region = crate::region::Region {
+            expr: expr.to_region_expr()
+        };
+        Ok(PyRegion { expr, region })
     }
 }
 
