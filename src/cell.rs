@@ -1,32 +1,3 @@
-    #[test]
-    fn test_cell_fill_material() {
-    use materials_for_mc::Material;
-        use crate::region::{Region, HalfspaceType};
-        use crate::surface::{Surface, SurfaceKind, BoundaryType};
-        use std::sync::Arc;
-
-        let s1 = Surface {
-            surface_id: 1,
-            kind: SurfaceKind::Sphere {
-                x0: 0.0,
-                y0: 0.0,
-                z0: 0.0,
-                radius: 1.0,
-            },
-            boundary_type: BoundaryType::default(),
-        };
-        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
-
-    let mat = Material::new();
-    let cell = Cell::new(1, region, Some("filled".to_string()), Some(mat.clone()));
-    assert!(cell.material().is_some());
-    // The default Material::new() has an empty nuclides map
-    assert_eq!(cell.material().unwrap().nuclides.len(), 0);
-
-        // Optional fill
-        let cell2 = Cell::new(2, cell.region.clone(), Some("empty".to_string()), None);
-        assert!(cell2.material().is_none());
-    }
 use crate::region::Region;
 use materials_for_mc::Material;
 use std::sync::Arc;
@@ -65,6 +36,35 @@ impl Cell {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_cell_fill_material() {
+        use materials_for_mc::Material;
+        use crate::region::{Region, HalfspaceType};
+        use crate::surface::{Surface, SurfaceKind, BoundaryType};
+        use std::sync::Arc;
+
+        let s1 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 1.0,
+            },
+            boundary_type: BoundaryType::default(),
+        };
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
+
+        let mat = Material::new();
+        let cell = Cell::new(1, region, Some("filled".to_string()), Some(mat.clone()));
+        assert!(cell.material().is_some());
+        // The default Material::new() has an empty nuclides map
+        assert_eq!(cell.material().unwrap().nuclides.len(), 0);
+
+        // Optional fill
+        let cell2 = Cell::new(2, cell.region.clone(), Some("empty".to_string()), None);
+        assert!(cell2.material().is_none());
+    }
     #[test]
     fn test_cell_union_region() {
         // Union of two spheres
