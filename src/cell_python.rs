@@ -1,6 +1,6 @@
-use pyo3::prelude::*;
 use crate::cell::Cell;
 use crate::region_python::PyRegion;
+use pyo3::prelude::*;
 
 #[pyclass(name = "Cell")]
 pub struct PyCell {

@@ -22,12 +22,10 @@ impl Cell {
         }
     }
 
-
     /// Check if a point is inside this cell's region
     pub fn contains(&self, point: (f64, f64, f64)) -> bool {
         self.region.contains(point)
     }
-
 }
 
 #[cfg(test)]
@@ -37,12 +35,22 @@ mod tests {
         // Union of two spheres
         let s1 = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let s2 = Surface {
             surface_id: 2,
-            kind: SurfaceKind::Sphere { x0: 3.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 3.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
@@ -59,19 +67,29 @@ mod tests {
         // Intersection of two spheres
         let s1 = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let s2 = Surface {
             surface_id: 2,
-            kind: SurfaceKind::Sphere { x0: 1.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 1.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
         let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2)));
         let region = region1.intersection(&region2);
         let cell = Cell::new(101, region, Some("intersection".to_string()));
-    assert!(cell.contains((0.0, 0.0, 0.0))); // inside both
+        assert!(cell.contains((0.0, 0.0, 0.0))); // inside both
         assert!(cell.contains((1.0, 0.0, 0.0))); // inside both
         assert!(!cell.contains((3.0, 0.0, 0.0))); // outside both
     }
@@ -81,7 +99,12 @@ mod tests {
         // Complement of a sphere
         let s1 = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
@@ -95,22 +118,41 @@ mod tests {
         // s1: x = 2.1, s2: x = -2.1, s3: sphere at origin, r=4.2
         let s1 = Surface {
             surface_id: 5,
-            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 }, // x = 2.1
+            kind: SurfaceKind::Plane {
+                a: 1.0,
+                b: 0.0,
+                c: 0.0,
+                d: 2.1,
+            }, // x = 2.1
             boundary_type: BoundaryType::default(),
         };
         let s2 = Surface {
             surface_id: 6,
-            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 }, // x = -2.1
+            kind: SurfaceKind::Plane {
+                a: 1.0,
+                b: 0.0,
+                c: 0.0,
+                d: -2.1,
+            }, // x = -2.1
             boundary_type: BoundaryType::default(),
         };
         let s3 = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 4.2 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 4.2,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(s2))))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s3))));
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(
+                s2,
+            ))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(
+                s3,
+            ))));
         let cell = Cell::new(42, region, Some("complex".to_string()));
         // Point inside all constraints
         assert!(cell.contains((0.0, 0.0, 0.0)));
@@ -122,8 +164,8 @@ mod tests {
         assert!(!cell.contains((0.0, 0.0, 5.0)));
     }
     use super::*;
-    use crate::surface::{Surface, SurfaceKind, BoundaryType};
-    use crate::region::{Region, HalfspaceType};
+    use crate::region::{HalfspaceType, Region};
+    use crate::surface::{BoundaryType, Surface, SurfaceKind};
     use std::sync::Arc;
 
     #[test]
@@ -131,7 +173,12 @@ mod tests {
         // Sphere of radius 2 at (0,0,0)
         let sphere = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
@@ -145,12 +192,22 @@ mod tests {
         // Two spheres
         let s1 = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let s2 = Surface {
             surface_id: 2,
-            kind: SurfaceKind::Sphere { x0: 2.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 2.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1.clone())));
@@ -174,7 +231,12 @@ mod tests {
     fn test_cell_naming() {
         let sphere = Surface {
             surface_id: 1,
-            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 2.0,
+            },
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
