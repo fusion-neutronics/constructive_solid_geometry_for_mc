@@ -26,6 +26,7 @@ fn constructive_solid_geometry_for_mc(_py: Python, m: &PyModule) -> PyResult<()>
     m.add_class::<region_python::PyRegion>()?;
     m.add_class::<region_python::PyHalfspace>()?;
     m.add_class::<cell_python::PyCell>()?;
+    m.add_class::<cell_python::PyMaterial>()?;
     m.add_class::<surface_python::PyBoundaryType>()?;
     // Expose surface constructors at top level for OpenMC-style API
     use surface_python::{Cylinder, Plane, Sphere, XPlane, YPlane, ZCylinder, ZPlane};

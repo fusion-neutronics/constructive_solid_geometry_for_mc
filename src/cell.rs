@@ -1,4 +1,34 @@
+    #[test]
+    fn test_cell_fill_material() {
+    use materials_for_mc::Material;
+        use crate::region::{Region, HalfspaceType};
+        use crate::surface::{Surface, SurfaceKind, BoundaryType};
+        use std::sync::Arc;
+
+        let s1 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere {
+                x0: 0.0,
+                y0: 0.0,
+                z0: 0.0,
+                radius: 1.0,
+            },
+            boundary_type: BoundaryType::default(),
+        };
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
+
+    let mat = Material::new();
+    let cell = Cell::new(1, region, Some("filled".to_string()), Some(mat.clone()));
+    assert!(cell.material().is_some());
+    // The default Material::new() has an empty nuclides map
+    assert_eq!(cell.material().unwrap().nuclides.len(), 0);
+
+        // Optional fill
+        let cell2 = Cell::new(2, cell.region.clone(), Some("empty".to_string()), None);
+        assert!(cell2.material().is_none());
+    }
 use crate::region::Region;
+use materials_for_mc::Material;
 use std::sync::Arc;
 
 /// A Cell represents a geometric region
@@ -10,21 +40,26 @@ pub struct Cell {
     pub cell_id: u32,
     pub name: Option<String>,
     pub region: Region,
+    pub material: Option<Material>,
 }
 
 impl Cell {
-    /// Create a new cell with a regio
-    pub fn new(cell_id: u32, region: Region, name: Option<String>) -> Self {
+    /// Create a new cell with a region and optional material (fill)
+    pub fn new(cell_id: u32, region: Region, name: Option<String>, material: Option<Material>) -> Self {
         Cell {
             cell_id,
             name,
             region,
+            material,
         }
     }
 
     /// Check if a point is inside this cell's region
     pub fn contains(&self, point: (f64, f64, f64)) -> bool {
         self.region.contains(point)
+    }
+    pub fn material(&self) -> Option<&Material> {
+        self.material.as_ref()
     }
 }
 
@@ -56,7 +91,7 @@ mod tests {
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
         let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2)));
         let region = region1.union(&region2);
-        let cell = Cell::new(100, region, Some("union".to_string()));
+    let cell = Cell::new(100, region, Some("union".to_string()), None);
         assert!(cell.contains((0.0, 0.0, 0.0))); // inside first sphere
         assert!(cell.contains((3.0, 0.0, 0.0))); // inside second sphere
         assert!(!cell.contains((6.0, 0.0, 0.0))); // outside both
@@ -88,7 +123,7 @@ mod tests {
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
         let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2)));
         let region = region1.intersection(&region2);
-        let cell = Cell::new(101, region, Some("intersection".to_string()));
+    let cell = Cell::new(101, region, Some("intersection".to_string()), None);
         assert!(cell.contains((0.0, 0.0, 0.0))); // inside both
         assert!(cell.contains((1.0, 0.0, 0.0))); // inside both
         assert!(!cell.contains((3.0, 0.0, 0.0))); // outside both
@@ -109,7 +144,7 @@ mod tests {
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
         let region_complement = region.complement();
-        let cell = Cell::new(102, region_complement, Some("complement".to_string()));
+    let cell = Cell::new(102, region_complement, Some("complement".to_string()), None);
         assert!(!cell.contains((0.0, 0.0, 0.0))); // inside original sphere
         assert!(cell.contains((3.0, 0.0, 0.0))); // outside original sphere
     }
@@ -153,7 +188,7 @@ mod tests {
             .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(
                 s3,
             ))));
-        let cell = Cell::new(42, region, Some("complex".to_string()));
+    let cell = Cell::new(42, region, Some("complex".to_string()), None);
         // Point inside all constraints
         assert!(cell.contains((0.0, 0.0, 0.0)));
         // Point outside s1 (x > 2.1)
@@ -182,7 +217,7 @@ mod tests {
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
-        let cell = Cell::new(1, region, None);
+    let cell = Cell::new(1, region, None, None);
         assert!(cell.contains((0.0, 0.0, 0.0)));
         assert!(!cell.contains((3.0, 0.0, 0.0)));
     }
@@ -213,16 +248,16 @@ mod tests {
         let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1.clone())));
         let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2.clone())));
         // Union
-        let union_cell = Cell::new(2, region1.clone().union(&region2.clone()), None);
+    let union_cell = Cell::new(2, region1.clone().union(&region2.clone()), None, None);
         assert!(union_cell.contains((0.0, 0.0, 0.0)));
         assert!(union_cell.contains((2.0, 0.0, 0.0)));
         assert!(!union_cell.contains((5.0, 0.0, 0.0)));
         // Intersection
-        let intersection_cell = Cell::new(3, region1.clone().intersection(&region2.clone()), None);
+    let intersection_cell = Cell::new(3, region1.clone().intersection(&region2.clone()), None, None);
         assert!(!intersection_cell.contains((0.0, 0.0, 0.0)));
         assert!(intersection_cell.contains((1.0, 0.0, 0.0)));
         // Complement
-        let complement_cell = Cell::new(4, region1.complement(), None);
+    let complement_cell = Cell::new(4, region1.complement(), None, None);
         assert!(!complement_cell.contains((0.0, 0.0, 0.0)));
         assert!(complement_cell.contains((5.0, 0.0, 0.0)));
     }
@@ -240,7 +275,7 @@ mod tests {
             boundary_type: BoundaryType::default(),
         };
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(sphere)));
-        let cell = Cell::new(1, region, Some("fuel".to_string()));
+    let cell = Cell::new(1, region, Some("fuel".to_string()), None);
         assert_eq!(cell.name, Some("fuel".to_string()));
     }
 }
