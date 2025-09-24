@@ -1,3 +1,6 @@
+[dependencies]
+materials_for_mc = "0.2.0"
+pyo3 = { version = "0.19", features = ["extension-module"], optional = true  }
 [package]
 name = "constructive_solid_geometry_for_mc"
 version = "0.1.0"
@@ -11,8 +14,7 @@ crate-type = ["cdylib", "rlib"]
 # Keep the path the same
 path = "src/lib.rs"
 
-[dependencies]
-pyo3 = { version = "0.19", features = ["extension-module"], optional = true  }
+
 
 # Optional: for building wheels
 [package.metadata.maturin]
