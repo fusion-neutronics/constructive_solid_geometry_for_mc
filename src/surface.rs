@@ -1,4 +1,4 @@
-use crate::region::{RegionExpr, HalfspaceType};
+use crate::region::{HalfspaceType, RegionExpr};
 use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -33,9 +33,23 @@ pub struct Surface {
 
 #[derive(Clone)]
 pub enum SurfaceKind {
-    Plane { a: f64, b: f64, c: f64, d: f64 },
-    Sphere { x0: f64, y0: f64, z0: f64, radius: f64 },
-    Cylinder { axis: [f64; 3], origin: [f64; 3], radius: f64 },
+    Plane {
+        a: f64,
+        b: f64,
+        c: f64,
+        d: f64,
+    },
+    Sphere {
+        x0: f64,
+        y0: f64,
+        z0: f64,
+        radius: f64,
+    },
+    Cylinder {
+        axis: [f64; 3],
+        origin: [f64; 3],
+        radius: f64,
+    },
 }
 
 // Regular Rust implementation
@@ -118,7 +132,14 @@ impl Surface {
         }
     }
 
-    pub fn new_plane(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn new_plane(
+        a: f64,
+        b: f64, 
+        c: f64,
+        d: f64,
+        surface_id: usize,
+        boundary_type: Option<BoundaryType>
+    ) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Plane { a, b, c, d },
@@ -126,7 +147,14 @@ impl Surface {
         }
     }
 
-    pub fn new_sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn new_sphere(
+        x0: f64,
+        y0: f64,
+        z0: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<BoundaryType>,
+    ) -> Self {
         Surface {
             surface_id,
             kind: SurfaceKind::Sphere { x0, y0, z0, radius },
@@ -134,14 +162,24 @@ impl Surface {
         }
     }
 
-    pub fn new_cylinder(axis: [f64; 3], origin: [f64; 3], radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn new_cylinder(
+        axis: [f64; 3],
+        origin: [f64; 3],
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<BoundaryType>,
+    ) -> Self {
         Surface {
             surface_id,
-            kind: SurfaceKind::Cylinder { axis, origin, radius },
+            kind: SurfaceKind::Cylinder {
+                axis,
+                origin,
+                radius,
+            },
             boundary_type: boundary_type.unwrap_or_default(),
         }
     }
-    
+
     pub fn x_plane(x0: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
         Self::new_plane(1.0, 0.0, 0.0, x0, surface_id, boundary_type)
     }
@@ -155,72 +193,172 @@ impl Surface {
     }
 
     /// Create a cylinder oriented along the Z axis, centered at (x0, y0), with given radius and surface_id
-    pub fn z_cylinder(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Self::new_cylinder([0.0, 0.0, 1.0], [x0, y0, 0.0], radius, surface_id, boundary_type)
+    pub fn z_cylinder(
+        x0: f64,
+        y0: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<BoundaryType>,
+    ) -> Self {
+        Self::new_cylinder(
+            [0.0, 0.0, 1.0],
+            [x0, y0, 0.0],
+            radius,
+            surface_id,
+            boundary_type,
+        )
     }
 
     /// Create a sphere with a specific boundary type
-    pub fn sphere(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
+    pub fn sphere(
+        x0: f64,
+        y0: f64,
+        z0: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<BoundaryType>,
+    ) -> Self {
         Self::new_sphere(x0, y0, z0, radius, surface_id, boundary_type)
     }
 
     /// Create a cylinder with individual axis components with a specific boundary type
-    pub fn cylinder(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<BoundaryType>) -> Self {
-        Self::new_cylinder([axis_x, axis_y, axis_z], [x0, y0, z0], radius, surface_id, boundary_type)
+    pub fn cylinder(
+        x0: f64,
+        y0: f64,
+        z0: f64,
+        axis_x: f64,
+        axis_y: f64,
+        axis_z: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<BoundaryType>,
+    ) -> Self {
+        Self::new_cylinder(
+            [axis_x, axis_y, axis_z],
+            [x0, y0, z0],
+            radius,
+            surface_id,
+            boundary_type,
+        )
     }
 
     // Python-friendly functions that accept string boundary types
-    pub fn x_plane_str(x0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn x_plane_str(
+        x0: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
         Ok(Self::x_plane(x0, surface_id, boundary))
     }
 
-    pub fn y_plane_str(y0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn y_plane_str(
+        y0: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
         Ok(Self::y_plane(y0, surface_id, boundary))
     }
 
-    pub fn z_plane_str(z0: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn z_plane_str(
+        z0: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
         Ok(Self::z_plane(z0, surface_id, boundary))
     }
 
-    pub fn sphere_str(x0: f64, y0: f64, z0: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn sphere_str(
+        x0: f64,
+        y0: f64,
+        z0: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
         Ok(Self::sphere(x0, y0, z0, radius, surface_id, boundary))
     }
 
-    pub fn cylinder_str(x0: f64, y0: f64, z0: f64, axis_x: f64, axis_y: f64, axis_z: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn cylinder_str(
+        x0: f64,
+        y0: f64,
+        z0: f64,
+        axis_x: f64,
+        axis_y: f64,
+        axis_z: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
-        Ok(Self::cylinder(x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, boundary))
+        Ok(Self::cylinder(
+            x0, y0, z0, axis_x, axis_y, axis_z, radius, surface_id, boundary,
+        ))
     }
 
-    pub fn z_cylinder_str(x0: f64, y0: f64, radius: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn z_cylinder_str(
+        x0: f64,
+        y0: f64,
+        radius: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
         Ok(Self::z_cylinder(x0, y0, radius, surface_id, boundary))
     }
 
-    pub fn plane_str(a: f64, b: f64, c: f64, d: f64, surface_id: usize, boundary_type: Option<&str>) -> Result<Self, String> {
+    pub fn plane_str(
+        a: f64,
+        b: f64,
+        c: f64,
+        d: f64,
+        surface_id: usize,
+        boundary_type: Option<&str>,
+    ) -> Result<Self, String> {
         let boundary = match boundary_type {
-            Some(s) => Some(BoundaryType::from_str_option(s).ok_or("boundary_type must be 'transmission' or 'vacuum'")?),
+            Some(s) => Some(
+                BoundaryType::from_str_option(s)
+                    .ok_or("boundary_type must be 'transmission' or 'vacuum'")?,
+            ),
             None => None,
         };
         Ok(Self::new_plane(a, b, c, d, surface_id, boundary))
@@ -238,17 +376,23 @@ impl Surface {
 
     pub fn evaluate(&self, point: (f64, f64, f64)) -> f64 {
         match &self.kind {
-            SurfaceKind::Plane { a, b, c, d } => {
-                a * point.0 + b * point.1 + c * point.2 - d
-            }
+            SurfaceKind::Plane { a, b, c, d } => a * point.0 + b * point.1 + c * point.2 - d,
             SurfaceKind::Sphere { x0, y0, z0, radius } => {
                 let dx = point.0 - x0;
                 let dy = point.1 - y0;
                 let dz = point.2 - z0;
                 (dx * dx + dy * dy + dz * dz).sqrt() - radius
             }
-            SurfaceKind::Cylinder { axis, origin, radius } => {
-                let v = [point.0 - origin[0], point.1 - origin[1], point.2 - origin[2]];
+            SurfaceKind::Cylinder {
+                axis,
+                origin,
+                radius,
+            } => {
+                let v = [
+                    point.0 - origin[0],
+                    point.1 - origin[1],
+                    point.2 - origin[2],
+                ];
                 let dot = v[0] * axis[0] + v[1] * axis[1] + v[2] * axis[2];
                 let d = [
                     v[0] - dot * axis[0],
@@ -282,7 +426,11 @@ impl Surface {
                     None
                 }
             }
-            SurfaceKind::Cylinder { axis, origin, radius } => {
+            SurfaceKind::Cylinder {
+                axis,
+                origin,
+                radius,
+            } => {
                 // For now, only handle Z-cylinders (axis = [0, 0, 1])
                 if axis[0].abs() < 1e-10 && axis[1].abs() < 1e-10 && (axis[2] - 1.0).abs() < 1e-10 {
                     if halfspace_below {
@@ -350,7 +498,7 @@ impl Halfspace {
 
 #[cfg(test)]
 mod tests {
-    use crate::region::{Region, HalfspaceType};
+    use crate::region::{HalfspaceType, Region};
     #[test]
     fn test_zcylinder_with_zplanes_bounding_box() {
         // Z-cylinder centered at (1, 2) with radius 3
@@ -361,8 +509,12 @@ mod tests {
 
         // Region: inside cylinder and between Z planes
         let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(cyl)))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(z_bottom))))
-            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(z_top))));
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(
+                z_bottom,
+            ))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(
+                z_top,
+            ))));
         let bbox = region.bounding_box();
         assert_eq!(bbox.lower_left, [-2.0, -1.0, -5.0]);
         assert_eq!(bbox.upper_right, [4.0, 5.0, 5.0]);
@@ -405,7 +557,11 @@ mod tests {
         let origin = [1.0, 2.0, 3.0];
         let cylinder = Surface::new_cylinder(axis, origin, 2.0, 99, None);
         match cylinder.kind {
-            SurfaceKind::Cylinder { axis: a, origin: o, radius } => {
+            SurfaceKind::Cylinder {
+                axis: a,
+                origin: o,
+                radius,
+            } => {
                 assert_eq!(a, axis);
                 assert_eq!(o, origin);
                 assert_eq!(radius, 2.0);
@@ -419,7 +575,11 @@ mod tests {
     fn test_z_cylinder_creation() {
         let zcyl = Surface::z_cylinder(1.0, 2.0, 3.0, 123, None);
         match zcyl.kind {
-            SurfaceKind::Cylinder { axis, origin, radius } => {
+            SurfaceKind::Cylinder {
+                axis,
+                origin,
+                radius,
+            } => {
                 assert_eq!(axis, [0.0, 0.0, 1.0]);
                 assert_eq!(origin, [1.0, 2.0, 0.0]);
                 assert_eq!(radius, 3.0);
@@ -445,10 +605,10 @@ mod tests {
     fn test_set_boundary_type() {
         let mut cylinder = Surface::new_cylinder([0.0, 0.0, 1.0], [0.0, 0.0, 0.0], 1.0, 2, None);
         assert_eq!(*cylinder.boundary_type(), BoundaryType::Vacuum);
-        
+
         cylinder.set_boundary_type(BoundaryType::Transmission);
         assert_eq!(*cylinder.boundary_type(), BoundaryType::Transmission);
-        
+
         cylinder.set_boundary_type(BoundaryType::Vacuum);
         assert_eq!(*cylinder.boundary_type(), BoundaryType::Vacuum);
     }
@@ -456,14 +616,14 @@ mod tests {
     #[test]
     fn test_zcylinder_bounding_box() {
         let zcyl = Surface::z_cylinder(1.0, 2.0, 3.0, 123, None);
-        
+
         // Test inside cylinder (halfspace_below = true)
         let bbox = zcyl.bounding_box(true);
         assert!(bbox.is_some());
         let (lower, upper) = bbox.unwrap();
         assert_eq!(lower, [-2.0, -1.0, f64::NEG_INFINITY]);
         assert_eq!(upper, [4.0, 5.0, f64::INFINITY]);
-        
+
         // Test outside cylinder (halfspace_below = false)
         let bbox_outside = zcyl.bounding_box(false);
         assert!(bbox_outside.is_none()); // Outside cylinder is infinite
