@@ -31,3 +31,32 @@ def test_cell_complex_region():
     assert not cell.contains(-3.0, 0.0, 0.0)
     # Point outside sphere (r > 4.2)
     assert not cell.contains(0.0, 0.0, 5.0)
+
+def test_cell_union_region():
+    # Union of two spheres
+    s1 = csg.Sphere(surface_id=1, x0=0.0, y0=0.0, z0=0.0, r=2.0, boundary_type='vacuum')
+    s2 = csg.Sphere(surface_id=2, x0=3.0, y0=0.0, z0=0.0, r=2.0, boundary_type='vacuum')
+    region = -s1 | -s2
+    cell = csg.Cell(cell_id=100, region=region, name="union")
+    assert cell.contains(0.0, 0.0, 0.0)  # inside first sphere
+    assert cell.contains(3.0, 0.0, 0.0)  # inside second sphere
+    assert not cell.contains(6.0, 0.0, 0.0)  # outside both
+
+def test_cell_intersection_region():
+    # Intersection of two spheres
+    s1 = csg.Sphere(surface_id=1, x0=0.0, y0=0.0, z0=0.0, r=2.0, boundary_type='vacuum')
+    s2 = csg.Sphere(surface_id=2, x0=1.0, y0=0.0, z0=0.0, r=2.0, boundary_type='vacuum')
+    region = -s1 & -s2
+    cell = csg.Cell(cell_id=101, region=region, name="intersection")
+    assert cell.contains(0.0, 0.0, 0.0)  # inside both
+    assert cell.contains(1.0, 0.0, 0.0)  # inside both
+    assert not cell.contains(3.0, 0.0, 0.0)  # outside both
+
+def test_cell_complement_region():
+    # Complement of a sphere
+    s1 = csg.Sphere(surface_id=1, x0=0.0, y0=0.0, z0=0.0, r=2.0, boundary_type='vacuum')
+    region = -s1
+    region_complement = ~region
+    cell = csg.Cell(cell_id=102, region=region_complement, name="complement")
+    assert not cell.contains(0.0, 0.0, 0.0)  # inside original sphere
+    assert cell.contains(3.0, 0.0, 0.0)  # outside original sphere

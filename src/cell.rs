@@ -33,6 +33,64 @@ impl Cell {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn test_cell_union_region() {
+        // Union of two spheres
+        let s1 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let s2 = Surface {
+            surface_id: 2,
+            kind: SurfaceKind::Sphere { x0: 3.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
+        let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2)));
+        let region = region1.union(&region2);
+        let cell = Cell::new(100, region, Some("union".to_string()));
+        assert!(cell.contains((0.0, 0.0, 0.0))); // inside first sphere
+        assert!(cell.contains((3.0, 0.0, 0.0))); // inside second sphere
+        assert!(!cell.contains((6.0, 0.0, 0.0))); // outside both
+    }
+
+    #[test]
+    fn test_cell_intersection_region() {
+        // Intersection of two spheres
+        let s1 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let s2 = Surface {
+            surface_id: 2,
+            kind: SurfaceKind::Sphere { x0: 1.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let region1 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
+        let region2 = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s2)));
+        let region = region1.intersection(&region2);
+        let cell = Cell::new(101, region, Some("intersection".to_string()));
+    assert!(cell.contains((0.0, 0.0, 0.0))); // inside both
+        assert!(cell.contains((1.0, 0.0, 0.0))); // inside both
+        assert!(!cell.contains((3.0, 0.0, 0.0))); // outside both
+    }
+
+    #[test]
+    fn test_cell_complement_region() {
+        // Complement of a sphere
+        let s1 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 2.0 },
+            boundary_type: BoundaryType::default(),
+        };
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)));
+        let region_complement = region.complement();
+        let cell = Cell::new(102, region_complement, Some("complement".to_string()));
+        assert!(!cell.contains((0.0, 0.0, 0.0))); // inside original sphere
+        assert!(cell.contains((3.0, 0.0, 0.0))); // outside original sphere
+    }
+    #[test]
     fn test_cell_complex_region() {
         // s1: x = 2.1, s2: x = -2.1, s3: sphere at origin, r=4.2
         let s1 = Surface {
