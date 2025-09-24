@@ -38,6 +38,7 @@ impl PyMaterial {
 }
 
 #[pyclass(name = "Cell")]
+#[derive(Clone)]
 pub struct PyCell {
     pub inner: Cell,
 }

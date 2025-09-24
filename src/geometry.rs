@@ -1,6 +1,8 @@
 use crate::cell::Cell;
 
 /// Geometry is a collection of cells for Monte Carlo transport
+
+#[derive(Clone)]
 pub struct Geometry {
     pub cells: Vec<Cell>,
 }
