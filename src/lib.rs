@@ -1,3 +1,5 @@
+#[cfg(feature = "pyo3")]
+pub mod geometry_python;
 pub mod bounding_box;
 pub mod cell;
 pub mod region;
@@ -28,6 +30,7 @@ fn constructive_solid_geometry_for_mc(_py: Python, m: &PyModule) -> PyResult<()>
     m.add_class::<cell_python::PyCell>()?;
     m.add_class::<cell_python::PyMaterial>()?;
     m.add_class::<surface_python::PyBoundaryType>()?;
+    m.add_class::<crate::geometry::PyGeometry>()?;
     // Expose surface constructors at top level for OpenMC-style API
     use surface_python::{Cylinder, Plane, Sphere, XPlane, YPlane, ZCylinder, ZPlane};
     m.add_function(wrap_pyfunction!(XPlane, m)?)?;

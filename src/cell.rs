@@ -15,6 +15,17 @@ pub struct Cell {
 }
 
 impl Cell {
+    /// Find the closest surface of this cell to a point along a direction (stub)
+    pub fn closest_surface(&self, _point: (f64, f64, f64), _direction: (f64, f64, f64)) -> Option<&crate::surface::Surface> {
+        // TODO: Implement actual surface intersection logic
+        None
+    }
+
+    /// Compute the distance to the closest surface from a point along a direction (stub)
+    pub fn distance_to_surface(&self, _point: (f64, f64, f64), _direction: (f64, f64, f64)) -> Option<f64> {
+        // TODO: Implement actual distance calculation
+        None
+    }
     /// Create a new cell with a region and optional material (fill)
     pub fn new(cell_id: u32, region: Region, name: Option<String>, material: Option<Material>) -> Self {
         Cell {
