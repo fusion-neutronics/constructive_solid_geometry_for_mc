@@ -15,18 +15,16 @@ pub struct Cell {
 }
 
 impl Cell {
-    /// Find the closest surface of this cell to a point along a direction
+    /// Find the closest surface of this cell to a point along a direction (OpenMC/MCNP: first intersection with any region surface)
     pub fn closest_surface(&self, point: [f64; 3], direction: [f64; 3]) -> Option<std::sync::Arc<crate::surface::Surface>> {
         let mut min_dist = f64::INFINITY;
         let mut closest_surface = None;
-        for (surface_arc, sense) in self.region.surfaces_with_sense() {
+        for (surface_arc, _sense) in self.region.surfaces_with_sense() {
             let surface: &crate::surface::Surface = surface_arc.as_ref();
             if let Some(dist) = surface.distance_to_surface(point, direction) {
-                if dist > 1e-10 && self.region.is_exit_surface((point[0], point[1], point[2]), (direction[0], direction[1], direction[2]), surface, dist, sense) {
-                    if dist < min_dist {
-                        min_dist = dist;
-                        closest_surface = Some(surface_arc.clone());
-                    }
+                if dist > 1e-10 && dist < min_dist {
+                    min_dist = dist;
+                    closest_surface = Some(surface_arc.clone());
                 }
             }
         }
