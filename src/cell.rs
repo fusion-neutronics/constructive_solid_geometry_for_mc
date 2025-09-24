@@ -32,6 +32,37 @@ impl Cell {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_cell_complex_region() {
+        // s1: x = 2.1, s2: x = -2.1, s3: sphere at origin, r=4.2
+        let s1 = Surface {
+            surface_id: 5,
+            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: 2.1 }, // x = 2.1
+            boundary_type: BoundaryType::default(),
+        };
+        let s2 = Surface {
+            surface_id: 6,
+            kind: SurfaceKind::Plane { a: 1.0, b: 0.0, c: 0.0, d: -2.1 }, // x = -2.1
+            boundary_type: BoundaryType::default(),
+        };
+        let s3 = Surface {
+            surface_id: 1,
+            kind: SurfaceKind::Sphere { x0: 0.0, y0: 0.0, z0: 0.0, radius: 4.2 },
+            boundary_type: BoundaryType::default(),
+        };
+        let region = Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s1)))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Above(Arc::new(s2))))
+            .intersection(&Region::new_from_halfspace(HalfspaceType::Below(Arc::new(s3))));
+        let cell = Cell::new(42, region, Some("complex".to_string()));
+        // Point inside all constraints
+        assert!(cell.contains((0.0, 0.0, 0.0)));
+        // Point outside s1 (x > 2.1)
+        assert!(!cell.contains((3.0, 0.0, 0.0)));
+        // Point outside s2 (x < -2.1)
+        assert!(!cell.contains((-3.0, 0.0, 0.0)));
+        // Point outside sphere (r > 4.2)
+        assert!(!cell.contains((0.0, 0.0, 5.0)));
+    }
     use super::*;
     use crate::surface::{Surface, SurfaceKind, BoundaryType};
     use crate::region::{Region, HalfspaceType};
