@@ -15,16 +15,40 @@ pub struct Cell {
 }
 
 impl Cell {
-    /// Find the closest surface of this cell to a point along a direction (stub)
-    pub fn closest_surface(&self, _point: (f64, f64, f64), _direction: (f64, f64, f64)) -> Option<&crate::surface::Surface> {
-        // TODO: Implement actual surface intersection logic
-        None
+    /// Find the closest surface of this cell to a point along a direction (OpenMC/MCNP: first intersection with any region surface)
+    pub fn closest_surface(&self, point: [f64; 3], direction: [f64; 3]) -> Option<std::sync::Arc<crate::surface::Surface>> {
+        let mut min_dist = f64::INFINITY;
+        let mut closest_surface = None;
+        for (surface_arc, _sense) in self.region.surfaces_with_sense() {
+            let surface: &crate::surface::Surface = surface_arc.as_ref();
+            if let Some(dist) = surface.distance_to_surface(point, direction) {
+                if dist > 1e-10 && dist < min_dist {
+                    min_dist = dist;
+                    closest_surface = Some(surface_arc.clone());
+                }
+            }
+        }
+        closest_surface
     }
 
-    /// Compute the distance to the closest surface from a point along a direction (stub)
-    pub fn distance_to_surface(&self, _point: (f64, f64, f64), _direction: (f64, f64, f64)) -> Option<f64> {
-        // TODO: Implement actual distance calculation
-        None
+    /// Compute the distance to the closest surface from a point along a direction
+    pub fn distance_to_surface(&self, point: [f64; 3], direction: [f64; 3]) -> Option<f64> {
+        let mut min_dist = f64::INFINITY;
+        for (surface_arc, sense) in self.region.surfaces_with_sense() {
+            let surface: &crate::surface::Surface = surface_arc.as_ref();
+            if let Some(dist) = surface.distance_to_surface(point, direction) {
+                if dist > 1e-10 && self.region.is_exit_surface((point[0], point[1], point[2]), (direction[0], direction[1], direction[2]), surface, dist, sense) {
+                    if dist < min_dist {
+                        min_dist = dist;
+                    }
+                }
+            }
+        }
+        if min_dist < f64::INFINITY {
+            Some(min_dist)
+        } else {
+            None
+        }
     }
     /// Create a new cell with a region and optional material (fill)
     pub fn new(cell_id: u32, region: Region, name: Option<String>, material: Option<Material>) -> Self {
@@ -47,6 +71,69 @@ impl Cell {
 
 #[cfg(test)]
 mod tests {
+// --- Surface distance tests ---
+#[cfg(test)]
+mod distance_tests {
+    use crate::surface::{Surface, SurfaceKind};
+
+    #[test]
+    fn test_sphere_distance() {
+        let sphere = Surface::new_sphere(0.0, 0.0, 0.0, 1.0, 1, None);
+        // From (2,0,0) toward center
+        let d = sphere.distance_to_surface([2.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert!((d.unwrap() - 1.0).abs() < 1e-10);
+        // From (0,0,0) outward
+        let d2 = sphere.distance_to_surface([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert!((d2.unwrap() - 1.0).abs() < 1e-10);
+        // No intersection
+        let d3 = sphere.distance_to_surface([2.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d3, None);
+        // On surface, outward
+        let d4 = sphere.distance_to_surface([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d4, None);
+    }
+
+    #[test]
+    fn test_cylinder_distance() {
+        // Z-cylinder at (0,0), r=1
+        let cyl = Surface::z_cylinder(0.0, 0.0, 1.0, 1, None);
+        // From (2,0,0) toward center
+        let d = cyl.distance_to_surface([2.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert!((d.unwrap() - 1.0).abs() < 1e-10);
+        // From (0,2,0) toward center
+        let d2 = cyl.distance_to_surface([0.0, 2.0, 0.0], [0.0, -1.0, 0.0]);
+        assert!((d2.unwrap() - 1.0).abs() < 1e-10);
+        // From (0,0,0) radially outward
+        let d3 = cyl.distance_to_surface([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert!((d3.unwrap() - 1.0).abs() < 1e-10);
+        // No intersection
+        let d4 = cyl.distance_to_surface([2.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d4, None);
+        // On surface, outward
+        let d5 = cyl.distance_to_surface([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d5, None);
+    }
+
+    #[test]
+    fn test_xplane_distance() {
+        let plane = Surface::x_plane(5.0, 1, None);
+        // From (0,0,0) in +x direction
+        let d = plane.distance_to_surface([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d, Some(5.0));
+        // From (0,0,0) in -x direction
+        let d2 = plane.distance_to_surface([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert_eq!(d2, None);
+        // From (10,0,0) in -x direction
+        let d3 = plane.distance_to_surface([10.0, 0.0, 0.0], [-1.0, 0.0, 0.0]);
+        assert_eq!(d3, Some(5.0));
+        // Parallel direction
+        let d4 = plane.distance_to_surface([0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
+        assert_eq!(d4, None);
+        // On plane, outward
+        let d5 = plane.distance_to_surface([5.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        assert_eq!(d5, None);
+    }
+}
     #[test]
     fn test_cell_fill_material() {
         use materials_for_mc::Material;

@@ -24,6 +24,49 @@ pub enum RegionExpr {
 
 // Regular Rust implementation
 impl Region {
+
+    /// Recursively collect all surfaces and their sense (true=Above, false=Below) in the region
+    pub fn surfaces_with_sense(&self) -> Vec<(Arc<Surface>, bool)> {
+        fn collect(expr: &RegionExpr, surfaces: &mut Vec<(Arc<Surface>, bool)>, sense: bool) {
+            match expr {
+                RegionExpr::Halfspace(hs) => match hs {
+                    HalfspaceType::Above(surf) => surfaces.push((surf.clone(), sense)),
+                    HalfspaceType::Below(surf) => surfaces.push((surf.clone(), !sense)),
+                },
+                RegionExpr::Union(a, b) | RegionExpr::Intersection(a, b) => {
+                    collect(a, surfaces, sense);
+                    collect(b, surfaces, sense);
+                }
+                RegionExpr::Complement(inner) => collect(inner, surfaces, !sense),
+            }
+        }
+        let mut result = Vec::new();
+        collect(&self.expr, &mut result, true);
+        result
+    }
+
+    /// Check if crossing the given surface at the intersection would exit the region
+    /// For unions: exit only if outside all subregions. For intersections: exit if outside any subregion.
+    pub fn is_exit_surface(&self, point: (f64, f64, f64), direction: (f64, f64, f64), _surface: &Surface, dist: f64, _sense: bool) -> bool {
+        let eps = 1e-8;
+        let p_next = (
+            point.0 + direction.0 * (dist + eps),
+            point.1 + direction.1 * (dist + eps),
+            point.2 + direction.2 * (dist + eps),
+        );
+        fn check_exit(expr: &RegionExpr, p: (f64, f64, f64)) -> bool {
+            match expr {
+                RegionExpr::Halfspace(hs) => match hs {
+                    HalfspaceType::Above(surf) => surf.evaluate(p) <= 0.0,
+                    HalfspaceType::Below(surf) => surf.evaluate(p) >= 0.0,
+                },
+                RegionExpr::Union(a, b) => check_exit(a, p) && check_exit(b, p), // exit union if outside all
+                RegionExpr::Intersection(a, b) => check_exit(a, p) || check_exit(b, p), // exit intersection if outside any
+                RegionExpr::Complement(inner) => !check_exit(inner, p),
+            }
+        }
+        check_exit(&self.expr, p_next)
+    }
     pub fn new_from_halfspace(halfspace_type: HalfspaceType) -> Self {
         Region {
             expr: RegionExpr::Halfspace(halfspace_type),

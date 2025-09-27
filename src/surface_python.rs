@@ -49,6 +49,14 @@ impl PySurface {
         self.inner.evaluate(point)
     }
 
+    /// Compute the distance to the surface from a point in a direction.
+    /// Returns the distance as a float, or None if no intersection.
+    pub fn distance_to_surface(&self, point: (f64, f64, f64), direction: (f64, f64, f64)) -> Option<f64> {
+        let point_arr = [point.0, point.1, point.2];
+        let dir_arr = [direction.0, direction.1, direction.2];
+        self.inner.distance_to_surface(point_arr, dir_arr)
+    }
+
     /// Get the bounding box for the inside (negative halfspace) of this surface
     pub fn bounding_box_inside(&self) -> Option<PyBoundingBox> {
         self.inner
